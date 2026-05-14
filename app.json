@@ -26,8 +26,10 @@
       "package": "com.Kidus.Vektereksamen",
       "googleServicesFile": "./google-services.json"
     },
+    "platforms": ["ios", "android", "web"],
     "web": {
       "bundler": "metro",
+      "output": "static",
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
@@ -42,7 +44,7 @@
         "expo-build-properties",
         {
           "ios": { "useFrameworks": "static" },
-          "android": { "kotlinVersion": "1.9.24" }
+          "android": { "kotlinVersion": "2.0.21" }
         }
       ]
     ],
