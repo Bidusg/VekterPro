@@ -16,7 +16,10 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.Kidus.VekterEksamen",
       "usesAppleSignIn": true,
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +29,11 @@
       "package": "com.Kidus.Vektereksamen",
       "googleServicesFile": "./google-services.json"
     },
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -43,8 +50,12 @@
       [
         "expo-build-properties",
         {
-          "ios": { "useFrameworks": "static" },
-          "android": { "kotlinVersion": "2.0.21" }
+          "ios": {
+            "useFrameworks": "static"
+          },
+          "android": {
+            "kotlinVersion": "2.0.21"
+          }
         }
       ]
     ],
