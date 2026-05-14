@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { registrer } from '../services/auth';
 import { oversettAuthFeil, SocialButtons } from './login';
-import { useGoogleAuth, appleSignIn, isAppleSignInAvailable } from '../services/socialAuth';
+import { googleSignIn, appleSignIn, isAppleSignInAvailable } from '../services/socialAuth';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -32,19 +32,6 @@ export default function SignupScreen() {
   useEffect(() => {
     isAppleSignInAvailable().then(setAppleAvailable);
   }, []);
-
-  // Google OAuth-hook – må kalles på toppnivå
-  const { request, promptAsync } = useGoogleAuth({
-    onSuccess: ({ isNewUser }) => {
-      setGoogleBusy(false);
-      // AuthGate i _layout.jsx håndterer navigering
-      // Nye brukere sendes til /betaling via AuthGate (isPaid = false)
-    },
-    onError: (err) => {
-      setGoogleBusy(false);
-      Alert.alert('Google-registrering feilet', err.message);
-    },
-  });
 
   async function onRegister() {
     if (!fornavn || !etternavn || !epost || !passord || !bekreftPassord) {
@@ -71,16 +58,15 @@ export default function SignupScreen() {
     }
   }
 
-  function onGoogleRegister() {
-    if (!request) {
-      Alert.alert(
-        'Google Sign In ikke klar',
-        'Sett EXPO_PUBLIC_GOOGLE_CLIENT_ID i .env-filen (se .env.example).'
-      );
-      return;
-    }
+  async function onGoogleRegister() {
     setGoogleBusy(true);
-    promptAsync();
+    try {
+      await googleSignIn();
+    } catch (err) {
+      Alert.alert('Google-registrering feilet', err.message);
+    } finally {
+      setGoogleBusy(false);
+    }
   }
 
   async function onAppleRegister() {

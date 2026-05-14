@@ -3,19 +3,7 @@
 //   users/{uid}/dagligStat/{YYYY-MM-DD}     – {dato, riktig, totalt, score%}
 //   users/{uid}/kategoriStat/{kategori}     – {kategori, riktig, totalt, score%}
 //   users/{uid}/eksamensforsok/{auto-id}    – {dato, score%, bestått, antall}
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  addDoc,
-  serverTimestamp,
-  query,
-  orderBy,
-  limit as fbLimit,
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
+import firestore from '@react-native-firebase/firestore';
 
 function dagsformat(d = new Date()) {
   return d.toISOString().slice(0, 10);
@@ -26,12 +14,12 @@ export async function registrerSvar(userId, kategori, riktig) {
   if (!userId || !kategori) return;
   try {
     const dag = dagsformat();
-    const dagRef = doc(db, 'users', userId, 'dagligStat', dag);
-    const katRef = doc(db, 'users', userId, 'kategoriStat', kategori);
+    const dagRef = firestore().collection('users').doc(userId).collection('dagligStat').doc(dag);
+    const katRef = firestore().collection('users').doc(userId).collection('kategoriStat').doc(kategori);
 
-    const [dagSnap, katSnap] = await Promise.all([getDoc(dagRef), getDoc(katRef)]);
-    const dagData = dagSnap.exists() ? dagSnap.data() : { riktig: 0, totalt: 0 };
-    const katData = katSnap.exists() ? katSnap.data() : { riktig: 0, totalt: 0 };
+    const [dagSnap, katSnap] = await Promise.all([dagRef.get(), katRef.get()]);
+    const dagData = dagSnap.exists ? dagSnap.data() : { riktig: 0, totalt: 0 };
+    const katData = katSnap.exists ? katSnap.data() : { riktig: 0, totalt: 0 };
 
     const nyDag = {
       dato: dag,
@@ -47,7 +35,7 @@ export async function registrerSvar(userId, kategori, riktig) {
     };
     nyKat.score = nyKat.totalt > 0 ? Math.round((nyKat.riktig / nyKat.totalt) * 100) : 0;
 
-    await Promise.all([setDoc(dagRef, nyDag), setDoc(katRef, nyKat)]);
+    await Promise.all([dagRef.set(nyDag), katRef.set(nyKat)]);
   } catch (e) {
     console.error('[stat] registrerSvar feil:', e.message);
   }
@@ -57,8 +45,8 @@ export async function registrerSvar(userId, kategori, riktig) {
 export async function registrerEksamensforsok(userId, score, antall) {
   if (!userId) return;
   try {
-    await addDoc(collection(db, 'users', userId, 'eksamensforsok'), {
-      dato: serverTimestamp(),
+    await firestore().collection('users').doc(userId).collection('eksamensforsok').add({
+      dato: firestore.FieldValue.serverTimestamp(),
       score,
       antall,
       bestatt: score >= 75,
@@ -71,9 +59,11 @@ export async function registrerEksamensforsok(userId, score, antall) {
 export async function hentDagligStat(userId, dager = 30) {
   if (!userId) return [];
   try {
-    const snap = await getDocs(
-      query(collection(db, 'users', userId, 'dagligStat'), orderBy('dato', 'desc'), fbLimit(dager))
-    );
+    const snap = await firestore()
+      .collection('users').doc(userId).collection('dagligStat')
+      .orderBy('dato', 'desc')
+      .limit(dager)
+      .get();
     return snap.docs.map((d) => d.data()).reverse();
   } catch (e) {
     console.error('[stat] hentDagligStat feil:', e.message);
@@ -84,7 +74,7 @@ export async function hentDagligStat(userId, dager = 30) {
 export async function hentKategoriStat(userId) {
   if (!userId) return [];
   try {
-    const snap = await getDocs(collection(db, 'users', userId, 'kategoriStat'));
+    const snap = await firestore().collection('users').doc(userId).collection('kategoriStat').get();
     return snap.docs.map((d) => d.data());
   } catch (e) {
     console.error('[stat] hentKategoriStat feil:', e.message);
@@ -95,9 +85,10 @@ export async function hentKategoriStat(userId) {
 export async function hentEksamensforsok(userId) {
   if (!userId) return { antall: 0, bestattPct: 0, forsok: [] };
   try {
-    const snap = await getDocs(
-      query(collection(db, 'users', userId, 'eksamensforsok'), orderBy('dato', 'desc'))
-    );
+    const snap = await firestore()
+      .collection('users').doc(userId).collection('eksamensforsok')
+      .orderBy('dato', 'desc')
+      .get();
     const forsok = snap.docs.map((d) => d.data());
     const antall = forsok.length;
     const bestattAntall = forsok.filter((f) => f.bestatt).length;

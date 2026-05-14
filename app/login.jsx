@@ -17,7 +17,7 @@ import { AntDesign } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { useState, useEffect } from 'react';
 import { loggInn } from '../services/auth';
-import { useGoogleAuth, appleSignIn, isAppleSignInAvailable } from '../services/socialAuth';
+import { googleSignIn, appleSignIn, isAppleSignInAvailable } from '../services/socialAuth';
 
 // ─── Google G logo (offisiell 4-farges SVG) ───────────────────────────────────
 function GoogleG({ size = 26 }) {
@@ -96,18 +96,6 @@ export default function LoginScreen() {
     isAppleSignInAvailable().then(setAppleAvailable);
   }, []);
 
-  // Google OAuth-hook – må kalles på toppnivå
-  const { request, promptAsync } = useGoogleAuth({
-    onSuccess: () => {
-      // AuthGate i _layout.jsx håndterer videre navigering basert på isPaid
-      setGoogleBusy(false);
-    },
-    onError: (err) => {
-      setGoogleBusy(false);
-      Alert.alert('Google-innlogging feilet', err.message);
-    },
-  });
-
   async function onLogin() {
     if (!epost || !passord) {
       Alert.alert('Mangler felt', 'Fyll inn e-post og passord');
@@ -124,16 +112,15 @@ export default function LoginScreen() {
     }
   }
 
-  function onGoogleLogin() {
-    if (!request) {
-      Alert.alert(
-        'Google Sign In ikke klar',
-        'Sett EXPO_PUBLIC_GOOGLE_CLIENT_ID i .env-filen (se .env.example).'
-      );
-      return;
-    }
+  async function onGoogleLogin() {
     setGoogleBusy(true);
-    promptAsync();
+    try {
+      await googleSignIn();
+    } catch (err) {
+      Alert.alert('Google-innlogging feilet', err.message);
+    } finally {
+      setGoogleBusy(false);
+    }
   }
 
   async function onAppleLogin() {

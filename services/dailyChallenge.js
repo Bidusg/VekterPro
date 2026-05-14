@@ -1,22 +1,21 @@
 // Daglig utfordring: 10 tilfeldige spørsmål, kun én gang per dag.
 // Lagres i users/{uid}/dagligUtfordring/{YYYY-MM-DD}.
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import firestore from '@react-native-firebase/firestore';
 
 function dagsformat(d = new Date()) {
   return d.toISOString().slice(0, 10);
 }
 
 function utfordringRef(userId, dato = dagsformat()) {
-  return doc(db, 'users', userId, 'dagligUtfordring', dato);
+  return firestore().collection('users').doc(userId).collection('dagligUtfordring').doc(dato);
 }
 
 /** Returnerer { fullført: bool, score?: number, dato } */
 export async function hentDagensStatus(userId) {
   if (!userId) return { fullført: false };
   try {
-    const snap = await getDoc(utfordringRef(userId));
-    if (!snap.exists()) return { fullført: false, dato: dagsformat() };
+    const snap = await utfordringRef(userId).get();
+    if (!snap.exists) return { fullført: false, dato: dagsformat() };
     const data = snap.data();
     return { fullført: true, ...data };
   } catch (e) {
@@ -28,15 +27,15 @@ export async function hentDagensStatus(userId) {
 export async function fullførDagligUtfordring(userId, score, antall) {
   if (!userId) return;
   try {
-    await setDoc(utfordringRef(userId), {
+    await utfordringRef(userId).set({
       dato: dagsformat(),
       score,
       antall,
       bestatt: score >= 75,
-      fullført: serverTimestamp(),
+      fullført: firestore.FieldValue.serverTimestamp(),
     });
   } catch (e) {
-    console.error('[daglig] fullf\u00f8rDagligUtfordring feil:', e.message);
+    console.error('[daglig] fullførDagligUtfordring feil:', e.message);
   }
 }
 

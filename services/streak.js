@@ -1,10 +1,9 @@
 // Streak-tjeneste: dager på rad brukeren har vært aktiv.
 // Lagres i users/{uid}/meta/streak.
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import firestore from '@react-native-firebase/firestore';
 
-function streakDoc(userId) {
-  return doc(db, 'users', userId, 'meta', 'streak');
+function streakRef(userId) {
+  return firestore().collection('users').doc(userId).collection('meta').doc('streak');
 }
 
 function dagsformat(date = new Date()) {
@@ -20,8 +19,8 @@ function dagerMellom(d1, d2) {
 export async function hentStreak(userId) {
   if (!userId) return { current: 0, longest: 0, sistAktiv: null };
   try {
-    const snap = await getDoc(streakDoc(userId));
-    if (!snap.exists()) return { current: 0, longest: 0, sistAktiv: null };
+    const snap = await streakRef(userId).get();
+    if (!snap.exists) return { current: 0, longest: 0, sistAktiv: null };
     return snap.data();
   } catch (e) {
     console.error('[streak] hentStreak feil:', e.message);
@@ -36,10 +35,10 @@ export async function hentStreak(userId) {
 export async function registrerAktivitet(userId) {
   if (!userId) return;
   try {
-    const ref = streakDoc(userId);
-    const snap = await getDoc(ref);
+    const ref = streakRef(userId);
+    const snap = await ref.get();
     const idag = dagsformat();
-    const data = snap.exists() ? snap.data() : { current: 0, longest: 0, sistAktiv: null };
+    const data = snap.exists ? snap.data() : { current: 0, longest: 0, sistAktiv: null };
 
     if (data.sistAktiv === idag) return data; // allerede registrert i dag
 
@@ -54,9 +53,9 @@ export async function registrerAktivitet(userId) {
       current: nyCurrent,
       longest: Math.max(nyCurrent, data.longest || 0),
       sistAktiv: idag,
-      oppdatert: serverTimestamp(),
+      oppdatert: firestore.FieldValue.serverTimestamp(),
     };
-    await setDoc(ref, oppdatert);
+    await ref.set(oppdatert);
     return oppdatert;
   } catch (e) {
     console.error('[streak] registrerAktivitet feil:', e.message);

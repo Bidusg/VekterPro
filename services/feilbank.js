@@ -1,24 +1,11 @@
 // Feilbank-tjeneste: leser/skriver brukerens feilbank i Firestore.
 // Struktur: users/{userId}/feilbank/{spørsmålId}
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  deleteDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
+import firestore from '@react-native-firebase/firestore';
 
 const RIKTIG_PA_RAD_FOR_FJERN = 3;
 
-function feilbankColl(userId) {
-  return collection(db, 'users', userId, 'feilbank');
-}
-
-function feilbankDoc(userId, spørsmålId) {
-  return doc(db, 'users', userId, 'feilbank', String(spørsmålId));
+function feilbankRef(userId, spørsmålId) {
+  return firestore().collection('users').doc(userId).collection('feilbank').doc(String(spørsmålId));
 }
 
 /**
@@ -35,25 +22,25 @@ export async function registrerFeilSvar(userId, q) {
     console.warn('[feilbank] AVBRUTT: ugyldig spørsmål', q);
     return;
   }
-  const ref = feilbankDoc(userId, q.id);
+  const ref = feilbankRef(userId, q.id);
   try {
     console.log('[feilbank] henter eksisterende dokument...');
-    const snap = await getDoc(ref);
-    const data = snap.exists() ? snap.data() : {
+    const snap = await ref.get();
+    const data = snap.exists ? snap.data() : {
       spørsmål: q.q,
       kategori: q.cat,
       antallFeil: 0,
       antallRiktig: 0,
       riktigPåRad: 0,
     };
-    console.log('[feilbank] eksisterer:', snap.exists(), '– skriver oppdatering...');
-    await setDoc(ref, {
+    console.log('[feilbank] eksisterer:', snap.exists, '– skriver oppdatering...');
+    await ref.set({
       spørsmål: q.q,
       kategori: q.cat,
       antallFeil: (data.antallFeil ?? 0) + 1,
       antallRiktig: data.antallRiktig ?? 0,
       riktigPåRad: 0,
-      sisstFeil: serverTimestamp(),
+      sisstFeil: firestore.FieldValue.serverTimestamp(),
     });
     console.log('[feilbank] ✓ skrev feilsvar for spørsmål', q.id);
   } catch (e) {
@@ -72,10 +59,10 @@ export async function registrerRiktigSvar(userId, q) {
     console.warn('[feilbank] AVBRUTT: ingen userId');
     return;
   }
-  const ref = feilbankDoc(userId, q.id);
+  const ref = feilbankRef(userId, q.id);
   try {
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
+    const snap = await ref.get();
+    if (!snap.exists) {
       console.log('[feilbank] spørsmål ikke i feilbank – ingenting å gjøre');
       return;
     }
@@ -84,11 +71,11 @@ export async function registrerRiktigSvar(userId, q) {
     console.log('[feilbank] riktigPåRad:', data.riktigPåRad ?? 0, '→', nyRiktigPåRad);
 
     if (nyRiktigPåRad >= RIKTIG_PA_RAD_FOR_FJERN) {
-      await deleteDoc(ref);
+      await ref.delete();
       console.log('[feilbank] ✓ fjernet spørsmål', q.id, 'fra feilbank (3 riktige på rad)');
       return { fjernet: true };
     }
-    await setDoc(ref, {
+    await ref.set({
       ...data,
       antallRiktig: (data.antallRiktig ?? 0) + 1,
       riktigPåRad: nyRiktigPåRad,
@@ -108,7 +95,7 @@ export async function hentFeilbank(userId) {
   console.log('[feilbank] hentFeilbank kalt – userId:', userId);
   if (!userId) return [];
   try {
-    const snap = await getDocs(feilbankColl(userId));
+    const snap = await firestore().collection('users').doc(userId).collection('feilbank').get();
     const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     console.log('[feilbank] ✓ hentet', items.length, 'oppføringer');
     return items;
