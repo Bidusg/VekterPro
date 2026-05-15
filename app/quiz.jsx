@@ -187,6 +187,17 @@ export default function QuizScreen() {
     buildQuestions();
   }, []);
 
+  // Reshuffler svaralternativene hver gang et nytt (ubesvart) spørsmål vises
+  useEffect(() => {
+    if (questions.length === 0) return;
+    if (answers[current] !== undefined) return;
+    setQuestions(prev => {
+      const updated = [...prev];
+      updated[current] = shuffleOptions(prev[current]);
+      return updated;
+    });
+  }, [current]);
+
   function buildQuestions() {
     let pool = QUESTIONS;
 
