@@ -27,19 +27,27 @@ export function useStore() {
   useEffect(() => {
     loadAll();
     const unsub = lyttPaaAuth(async (user) => {
-      if (user) {
-        setUserId(user.uid);
-        setEpost(user.email);
-        setNavn(user.displayName || null);
-        // Hent profil fra Firestore (kan ha lagret navn)
-        const profil = await hentProfil(user.uid);
-        if (profil?.navn) setNavn(profil.navn);
-      } else {
-        setUserId(null);
-        setEpost(null);
-        setNavn(null);
+      try {
+        if (user) {
+          setUserId(user.uid);
+          setEpost(user.email);
+          setNavn(user.displayName || null);
+          try {
+            const profil = await hentProfil(user.uid);
+            if (profil?.navn) setNavn(profil.navn);
+          } catch (e) {
+            console.error('[auth] hentProfil feil:', e.message);
+          }
+        } else {
+          setUserId(null);
+          setEpost(null);
+          setNavn(null);
+        }
+      } catch (e) {
+        console.error('[auth] lyttPaaAuth callback feil:', e.message);
+      } finally {
+        setAuthReady(true);
       }
-      setAuthReady(true);
     });
     return () => unsub && unsub();
   }, []);
