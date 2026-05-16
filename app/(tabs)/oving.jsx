@@ -12,6 +12,8 @@ import { useAppStore } from '../../store/StoreContext';
 import { QUESTIONS } from '../../data/questions';
 import { MODULES, getQuestionsForModule } from '../../data/modules';
 
+const CHAPTERS = Array.from({ length: 15 }, (_, i) => i + 1);
+
 const { width } = Dimensions.get('window');
 
 export default function OvingTab() {
@@ -61,6 +63,30 @@ export default function OvingTab() {
           </View>
           <Text style={styles.feilArrow}>→</Text>
         </TouchableOpacity>
+
+        {/* Kapittelfilter */}
+        <Text style={styles.sectionTitle}>Øv per kapittel</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.kapScroll}
+          contentContainerStyle={styles.kapScrollContent}
+        >
+          {CHAPTERS.map((n) => {
+            const count = QUESTIONS.filter((q) => q.kapittel === n).length;
+            return (
+              <TouchableOpacity
+                key={n}
+                style={styles.kapChip}
+                onPress={() => router.push({ pathname: '/quiz', params: { mode: 'practice', chapter: n } })}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.kapChipNum}>{n}</Text>
+                <Text style={styles.kapChipCount}>{count} sp.</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         <Text style={styles.sectionTitle}>15 kompetansemål</Text>
 
@@ -122,7 +148,18 @@ const styles = StyleSheet.create({
   flashArrow: { color: '#4ECDC4', fontSize: 22, fontWeight: '700' },
   feilArrow: { color: '#E74C3C', fontSize: 22, fontWeight: '700' },
 
-  sectionTitle: { color: '#fff', fontSize: 16, fontWeight: '800', marginBottom: 12 },
+  sectionTitle: { color: '#fff', fontSize: 16, fontWeight: '800', marginBottom: 12, marginTop: 8 },
+
+  kapScroll: { flexGrow: 0, marginBottom: 16 },
+  kapScrollContent: { gap: 8 },
+  kapChip: {
+    width: 62, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: 'rgba(244,197,66,0.1)',
+    borderWidth: 1, borderColor: 'rgba(244,197,66,0.25)',
+    alignItems: 'center',
+  },
+  kapChipNum: { color: '#F4C542', fontSize: 16, fontWeight: '900' },
+  kapChipCount: { color: '#8b9ab5', fontSize: 10, marginTop: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   card: {
     width: (width - 52) / 2,

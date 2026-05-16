@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Dimensions,
   Animated,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,14 +21,15 @@ import Reanimated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { useAppStore as useStore } from '../store/StoreContext';
-import { QUESTIONS, CATEGORIES } from '../data/questions';
+import { nyeFlashcards } from '../data/nye_flashcards';
 import { useState, useRef, useEffect } from 'react';
 
 const SWIPE_THRESHOLD = 60;
-const SWIPE_VELOCITY = 600; // px/s – rask kort-swipe trigger også fly-off
+const SWIPE_VELOCITY = 600;
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 48;
 const CARD_HEIGHT = height * 0.42;
+const GOLD = '#F4C542';
 
 function shuffle(arr) {
   const a = [...arr];
@@ -42,15 +44,15 @@ export default function FlashcardsScreen() {
   const router = useRouter();
   const { flashcardState, updateFlashcardState } = useStore();
 
-  const [cards, setCards] = useState(() => shuffle(QUESTIONS));
+  const [chapter, setChapter] = useState(0); // 0 = Alle
+  const [cards, setCards] = useState(() => shuffle(nyeFlashcards));
   const [current, setCurrent] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('all'); // 'all' | 'unsure'
 
   const flipAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  // Swipe shared values
   const swipeX = useSharedValue(0);
   const swipeRot = useSharedValue(0);
   const greenOpacity = useSharedValue(0);
@@ -71,7 +73,6 @@ export default function FlashcardsScreen() {
     opacity: redOpacity.value,
   }));
 
-  // Background card scale/translate driven by swipe distance
   const bgCardStyle = useAnimatedStyle(() => {
     const progress = Math.min(Math.abs(swipeX.value) / SWIPE_THRESHOLD, 1);
     return {
@@ -83,17 +84,31 @@ export default function FlashcardsScreen() {
     };
   });
 
+  useEffect(() => {
+    const pool = chapter === 0
+      ? nyeFlashcards
+      : nyeFlashcards.filter((c) => c.kapittel === chapter);
+    setCards(shuffle(pool));
+    setCurrent(0);
+    setFlipped(false);
+    flipAnim.setValue(0);
+  }, [chapter]);
+
+  useEffect(() => {
+    setCurrent(0);
+    setFlipped(false);
+    flipAnim.setValue(0);
+  }, [filter]);
+
   const displayed = filter === 'unsure'
-    ? cards.filter((q) => flashcardState[q.id] !== 'knew')
+    ? cards.filter((c) => flashcardState[c.id] !== 'knew')
     : cards;
 
-  const q = displayed[current];
-  const nextQ = displayed[(current + 1) % displayed.length];
-  const cat = q ? CATEGORIES.find((c) => c.id === q.cat) : null;
-  const nextCat = nextQ ? CATEGORIES.find((c) => c.id === nextQ.cat) : null;
+  const card = displayed[current];
+  const nextCard = displayed[(current + 1) % displayed.length];
 
-  const knewCount = displayed.filter((c) => flashcardState[c.id] === 'knew').length;
-  const unsureCount = displayed.filter((c) => flashcardState[c.id] !== 'knew').length;
+  const knewCount = cards.filter((c) => flashcardState[c.id] === 'knew').length;
+  const unsureCount = cards.filter((c) => flashcardState[c.id] !== 'knew').length;
 
   useEffect(() => {
     setFlipped(false);
@@ -111,9 +126,8 @@ export default function FlashcardsScreen() {
     setFlipped(!flipped);
   }
 
-  // Called after swipe animation completes (on UI thread via callback)
   function advanceAfterSwipe(state) {
-    updateFlashcardState(q.id, state);
+    updateFlashcardState(card.id, state);
     if (current + 1 >= displayed.length) {
       setCurrent(0);
       setCards((prev) => shuffle(prev));
@@ -124,9 +138,8 @@ export default function FlashcardsScreen() {
     flipAnim.setValue(0);
   }
 
-  // Used for skip/action buttons (with slide animation)
   function handleMark(state) {
-    updateFlashcardState(q.id, state);
+    updateFlashcardState(card.id, state);
     goNext();
   }
 
@@ -168,7 +181,6 @@ export default function FlashcardsScreen() {
         (Math.abs(e.translationX) > SWIPE_THRESHOLD || e.velocityX < -SWIPE_VELOCITY);
 
       if (goRight) {
-        // Fly høyre → kan det
         swipeX.value = withTiming(width * 1.4, { duration: 260 }, (finished) => {
           if (finished) {
             runOnJS(advanceAfterSwipe)('knew');
@@ -181,7 +193,6 @@ export default function FlashcardsScreen() {
         swipeRot.value = withTiming(22, { duration: 260 });
         greenOpacity.value = withTiming(0, { duration: 130 });
       } else if (goLeft) {
-        // Fly venstre → kan ikke det
         swipeX.value = withTiming(-width * 1.4, { duration: 260 }, (finished) => {
           if (finished) {
             runOnJS(advanceAfterSwipe)('unsure');
@@ -194,7 +205,6 @@ export default function FlashcardsScreen() {
         swipeRot.value = withTiming(-22, { duration: 260 });
         redOpacity.value = withTiming(0, { duration: 130 });
       } else {
-        // Snap tilbake
         swipeX.value = withSpring(0, { damping: 15, stiffness: 150 });
         swipeRot.value = withSpring(0, { damping: 15, stiffness: 150 });
         greenOpacity.value = withSpring(0);
@@ -213,9 +223,16 @@ export default function FlashcardsScreen() {
   const frontInterpolate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
   const backInterpolate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
 
-  if (!q) {
+  if (!card) {
     return (
       <SafeAreaView style={styles.safe}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Text style={styles.backBtnText}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>🃏 Flashcards</Text>
+          <View style={{ width: 36 }} />
+        </View>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>🎉 Du kan alle kortene!</Text>
           <TouchableOpacity style={styles.resetBtn} onPress={() => { setFilter('all'); setCurrent(0); }}>
@@ -237,6 +254,26 @@ export default function FlashcardsScreen() {
         <View style={{ width: 36 }} />
       </View>
 
+      {/* Chapter filter */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chapterScroll}
+        contentContainerStyle={styles.chapterScrollContent}
+      >
+        {[0, ...Array.from({ length: 15 }, (_, i) => i + 1)].map((n) => (
+          <TouchableOpacity
+            key={n}
+            style={[styles.chapterChip, chapter === n && styles.chapterChipActive]}
+            onPress={() => setChapter(n)}
+          >
+            <Text style={[styles.chapterChipText, chapter === n && styles.chapterChipTextActive]}>
+              {n === 0 ? 'Alle' : `K${n}`}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {/* Filter tabs */}
       <View style={styles.filterRow}>
         {[
@@ -246,7 +283,7 @@ export default function FlashcardsScreen() {
           <TouchableOpacity
             key={tab.id}
             style={[styles.filterTab, filter === tab.id && styles.filterTabActive]}
-            onPress={() => { setFilter(tab.id); setCurrent(0); }}
+            onPress={() => setFilter(tab.id)}
           >
             <Text style={[styles.filterTabText, filter === tab.id && styles.filterTabTextActive]}>
               {tab.label}
@@ -266,14 +303,9 @@ export default function FlashcardsScreen() {
       {/* Card stack */}
       <View style={styles.cardArea}>
         {/* Background card (next) */}
-        {displayed.length > 1 && nextQ && (
+        {displayed.length > 1 && nextCard && (
           <Reanimated.View style={[styles.card, styles.cardFront, styles.bgCard, bgCardStyle]}>
-            {nextCat && (
-              <View style={[styles.catTag, { backgroundColor: (nextCat.color ?? '#6C63FF') + '22' }]}>
-                <Text style={styles.catTagText}>{nextCat.icon} {nextCat.name}</Text>
-              </View>
-            )}
-            <Text style={styles.bgCardQuestion} numberOfLines={3}>{nextQ.q}</Text>
+            <Text style={styles.bgCardQuestion} numberOfLines={3}>{nextCard.forside}</Text>
           </Reanimated.View>
         )}
 
@@ -288,11 +320,11 @@ export default function FlashcardsScreen() {
                 { transform: [{ translateX: slideAnim }, { rotateY: frontInterpolate }] },
               ]}
             >
-              <View style={[styles.catTag, { backgroundColor: (cat?.color ?? '#6C63FF') + '33' }]}>
-                <Text style={styles.catTagText}>{cat?.icon} {cat?.name}</Text>
+              <View style={styles.kapTag}>
+                <Text style={styles.kapTagText}>Kapittel {card.kapittel}</Text>
               </View>
               <Text style={styles.cardHint}>Trykk for å snu · sveip ← / →</Text>
-              <Text style={styles.cardQuestion}>{q.q}</Text>
+              <Text style={styles.cardQuestion}>{card.forside}</Text>
               <Text style={styles.tapHint}>👆 Trykk for svar</Text>
             </Animated.View>
 
@@ -305,17 +337,10 @@ export default function FlashcardsScreen() {
               ]}
             >
               <Text style={styles.cardAnswerLabel}>SVAR</Text>
-              <Text style={styles.cardAnswer}>{q.opts[q.ans]}</Text>
-              <View style={styles.allOptsContainer}>
-                {q.opts.map((opt, i) => (
-                  <Text key={i} style={[styles.allOpt, i === q.ans && styles.allOptCorrect]}>
-                    {i === q.ans ? '✓' : '·'} {opt}
-                  </Text>
-                ))}
-              </View>
+              <Text style={styles.cardAnswer}>{card.bakside}</Text>
             </Animated.View>
 
-            {/* Swipe overlays — always on top, outside flip faces */}
+            {/* Swipe overlays */}
             <Reanimated.View style={[styles.overlay, styles.overlayGreen, greenOverlayStyle]} pointerEvents="none">
               <MaterialIcons name="check" size={80} color="rgba(255,255,255,0.92)" />
             </Reanimated.View>
@@ -374,7 +399,22 @@ const styles = StyleSheet.create({
   backBtnText: { color: '#fff', fontSize: 16 },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: '#fff' },
 
-  filterRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 12 },
+  // Chapter filter
+  chapterScroll: { flexGrow: 0, marginBottom: 10 },
+  chapterScrollContent: { paddingHorizontal: 16, gap: 8 },
+  chapterChip: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  },
+  chapterChipActive: {
+    backgroundColor: 'rgba(244,197,66,0.18)',
+    borderColor: GOLD,
+  },
+  chapterChipText: { fontSize: 13, color: '#8b9ab5', fontWeight: '600' },
+  chapterChipTextActive: { color: GOLD },
+
+  filterRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 10 },
   filterTab: {
     flex: 1, paddingVertical: 8, borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.05)',
@@ -396,7 +436,6 @@ const styles = StyleSheet.create({
   knewBadge: { backgroundColor: 'rgba(46,204,113,0.1)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
   knewText: { fontSize: 12, color: '#2ECC71', fontWeight: '600' },
 
-  // Card stack area
   cardArea: {
     alignSelf: 'center',
     width: CARD_WIDTH,
@@ -404,7 +443,6 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
 
-  // Background (next) card
   bgCard: {
     position: 'absolute',
     bottom: 0,
@@ -422,17 +460,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // Active card wrapper (Reanimated, handles swipe)
   cardWrapper: {
     position: 'absolute',
     top: 0,
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     borderRadius: 24,
-    // overflow hidden would clip overlays; instead match borderRadius on overlays
   },
 
-  // Flip card faces
   card: {
     position: 'absolute',
     width: CARD_WIDTH,
@@ -449,30 +484,31 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(108,99,255,0.3)',
   },
   cardBack: {
-    backgroundColor: '#1a2e1a',
+    backgroundColor: '#1a2a1e',
     borderWidth: 1,
     borderColor: 'rgba(46,204,113,0.3)',
   },
 
-  catTag: {
+  kapTag: {
     position: 'absolute',
     top: 20, left: 20,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    backgroundColor: 'rgba(244,197,66,0.15)',
   },
-  catTagText: { fontSize: 12, color: '#fff', fontWeight: '600' },
+  kapTagText: { fontSize: 12, color: GOLD, fontWeight: '700' },
+
   cardHint: { fontSize: 11, color: '#4a4a6a', marginBottom: 16, letterSpacing: 1 },
   cardQuestion: { fontSize: 20, fontWeight: '700', color: '#fff', textAlign: 'center', lineHeight: 28 },
   tapHint: { position: 'absolute', bottom: 24, fontSize: 13, color: '#4a4a6a' },
 
   cardAnswerLabel: { fontSize: 11, color: '#2ECC71', letterSpacing: 2, marginBottom: 12, fontWeight: '700' },
-  cardAnswer: { fontSize: 22, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 20, lineHeight: 30 },
-  allOptsContainer: { width: '100%', gap: 6 },
-  allOpt: { fontSize: 13, color: '#8b9ab5', lineHeight: 18 },
-  allOptCorrect: { color: '#2ECC71', fontWeight: '700' },
+  cardAnswer: {
+    fontSize: 17, fontWeight: '700', color: '#fff',
+    textAlign: 'center', lineHeight: 26, paddingHorizontal: 8,
+  },
 
-  // Swipe overlays
   overlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -483,7 +519,6 @@ const styles = StyleSheet.create({
   overlayGreen: { backgroundColor: 'rgba(46,204,113,0.45)' },
   overlayRed: { backgroundColor: 'rgba(231,76,60,0.45)' },
 
-  // Swipe hint text
   swipeHint: {
     flexDirection: 'row',
     alignItems: 'center',

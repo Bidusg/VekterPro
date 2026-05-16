@@ -162,11 +162,12 @@ function ResultScreen({ questions, answers, onRestart, onHome }) {
 // ─── MAIN QUIZ ────────────────────────────────────────────────────────────────
 export default function QuizScreen() {
   const router = useRouter();
-  const { mode, module: moduleId, feilbankIds, dailyIds } = useLocalSearchParams();
+  const { mode, module: moduleId, feilbankIds, dailyIds, chapter } = useLocalSearchParams();
   const { progress, seenQuestions, userId, updateProgress, markQuestionSeen, resetSeenQuestions } = useStore();
 
   const isExam = mode === 'exam';
   const isDaily = mode === 'daily';
+  const chapterNum = chapter ? Number(chapter) : null;
   const aktivModul = !isExam && !isDaily && moduleId ? getModule(moduleId) : null;
 
   const [questions, setQuestions] = useState([]);
@@ -186,6 +187,17 @@ export default function QuizScreen() {
     buildQuestions();
   }, []);
 
+  // Reshuffler svaralternativene hver gang et nytt (ubesvart) spørsmål vises
+  useEffect(() => {
+    if (questions.length === 0) return;
+    if (answers[current] !== undefined) return;
+    setQuestions(prev => {
+      const updated = [...prev];
+      updated[current] = shuffleOptions(prev[current]);
+      return updated;
+    });
+  }, [current]);
+
   function buildQuestions() {
     let pool = QUESTIONS;
 
@@ -201,6 +213,8 @@ export default function QuizScreen() {
       // Øving fra feilbank: kun de valgte spørsmåls-id-ene
       const ids = String(feilbankIds).split(',');
       pool = QUESTIONS.filter((q) => ids.includes(String(q.id)));
+    } else if (!isExam && chapterNum) {
+      pool = QUESTIONS.filter((q) => q.kapittel === chapterNum);
     } else if (!isExam && aktivModul) {
       pool = getQuestionsForModule(aktivModul.id, QUESTIONS);
     }
@@ -423,9 +437,11 @@ export default function QuizScreen() {
           <Text style={styles.modeLabel} numberOfLines={1}>
             {isExam
               ? '🎓 Eksamen'
-              : aktivModul
-                ? `${aktivModul.icon} Modul ${aktivModul.num}`
-                : '📚 Øving'}
+              : chapterNum
+                ? `📖 Kapittel ${chapterNum}`
+                : aktivModul
+                  ? `${aktivModul.icon} Modul ${aktivModul.num}`
+                  : '📚 Øving'}
           </Text>
           <Text style={styles.progress}>
             {current + 1} / {questions.length}
@@ -445,7 +461,14 @@ export default function QuizScreen() {
         <Animated.View style={{ opacity: fadeAnim }}>
           {/* Question */}
           <View style={styles.questionCard}>
-            <Text style={styles.questionNum}>Spørsmål {current + 1}</Text>
+            <View style={styles.questionMeta}>
+              <Text style={styles.questionNum}>Spørsmål {current + 1}</Text>
+              {q.kapittel && (
+                <View style={styles.kapBadge}>
+                  <Text style={styles.kapBadgeText}>K{q.kapittel}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.questionText}>{q.q}</Text>
           </View>
 
@@ -594,7 +617,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.07)',
   },
-  questionNum: { fontSize: 12, color: '#6C63FF', fontWeight: '700', marginBottom: 8, letterSpacing: 1 },
+  questionMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  questionNum: { fontSize: 12, color: '#6C63FF', fontWeight: '700', letterSpacing: 1 },
+  kapBadge: {
+    backgroundColor: 'rgba(244,197,66,0.15)',
+    borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
+    borderWidth: 1, borderColor: 'rgba(244,197,66,0.3)',
+  },
+  kapBadgeText: { fontSize: 11, color: '#F4C542', fontWeight: '700' },
   questionText: { fontSize: 18, color: '#fff', fontWeight: '600', lineHeight: 26 },
 
   options: { gap: 12 },

@@ -47,12 +47,10 @@
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@react-native-google-signin/google-signin",
+      "./app.plugin",
       [
         "expo-build-properties",
         {
-          "ios": {
-            "useFrameworks": "static"
-          },
           "android": {
             "kotlinVersion": "2.0.21"
           }

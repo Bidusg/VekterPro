@@ -1,3 +1,5 @@
+import { nyeSporsmal } from './nye_sporsmal';
+
 // VekterPro – Spørsmålsdatabase
 // 333 unike spørsmål
 
@@ -26,7 +28,7 @@ export const CATEGORIES = [
 // VekterPro – Spørsmålsdatabase
 // 333 unike spørsmål
 
-export const QUESTIONS = [
+const QUESTIONS_OLD = [
   { id: 1, cat: "Uniform & Regler", q: "Kan jeg velge uniformsartikler selv?", opts: ["Nei","Hvis du får det godkjent av nærmeste leder","Ja"], ans: 0 },
   { id: 2, cat: "Uniform & Regler", q: "Hvilken lov gjelder for vaktselskap?", opts: ["Politiloven","Vaktvirksomhetsloven","Sikkerhetsloven"], ans: 1 },
   { id: 3, cat: "Uniform & Regler", q: "Hva menes med objektinstruks?", opts: ["Nøyaktig beskrivelse av alle gjøremål vekteren skal utføre i tjenesten hos en kunde","En teknisk beskrivelse av hvordan du sikrer en safe","Et politigodkjent anmeldelsesskjema"], ans: 0 },
@@ -361,3 +363,14 @@ export const QUESTIONS = [
   { id: 332, cat: "Juss", q: "Hvilken påstand om maktbruk er riktig?", opts: ["Kun politiet kan anvende makt","En vekters maktanvendelse er begrenset til nødvendig og forholdsmessig makt","Bruk av uniform gir en vekter full adgang til bruk av makt på lik linje som politiet"], ans: 1 },
   { id: 333, cat: "Juss", q: "Når kan mindreårige samtykke?", opts: ["Samtykke fra mindreårige kan alltid erstatte lovhjemmel","Aldri","Informert samtykke kan erstatte lovhjemmel ved mindre inngrep overfor mindreårige"], ans: 2 },
 ];
+
+const QUESTIONS_NEW = nyeSporsmal.map((q) => ({
+  id: q.id,
+  cat: `Kapittel ${q.kapittel}`,
+  kapittel: q.kapittel,
+  q: q.sporsmal,
+  opts: q.alternativer,
+  ans: q.riktig,
+}));
+
+export const QUESTIONS = [...QUESTIONS_OLD, ...QUESTIONS_NEW];
