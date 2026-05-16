@@ -1,9 +1,14 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import auth from '@react-native-firebase/auth';
+import {
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithCredential,
+  updateProfile,
+} from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
-import { db } from '../config/firebase';
+import { auth, db } from '../config/firebase';
 
 GoogleSignin.configure({
   webClientId: '351385798526-m1q9qpi8cnqhl7ar5td89d4eolfjdqf0.apps.googleusercontent.com',
@@ -15,19 +20,21 @@ GoogleSignin.configure({
 export async function googleSignIn() {
   await GoogleSignin.hasPlayServices();
   const { data } = await GoogleSignin.signIn();
-  const credential = auth.GoogleAuthProvider.credential(data.idToken);
-  const result = await auth().signInWithCredential(credential);
+  const credential = GoogleAuthProvider.credential(data.idToken);
+  const result = await signInWithCredential(auth, credential);
 
-  const snap = await getDoc(doc(db, 'users', result.user.uid));
-  if (!snap.exists()) {
-    await setDoc(doc(db, 'users', result.user.uid), {
+  const userRef = doc(db, 'users', result.user.uid);
+  const snap = await getDoc(userRef);
+  const isNew = !snap.exists();
+  if (isNew) {
+    await setDoc(userRef, {
       navn: result.user.displayName || '',
       epost: result.user.email || '',
       opprettet: serverTimestamp(),
     });
   }
 
-  return { user: result.user, isNewUser: !snap.exists() };
+  return { user: result.user, isNewUser: isNew };
 }
 
 // ─── Apple Sign-In ────────────────────────────────────────────────────────────
@@ -59,19 +66,21 @@ export async function appleSignIn() {
     throw new Error('Apple returnerte ingen identity token.');
   }
 
-  const credential = auth.AppleAuthProvider.credential(identityToken);
-  const result = await auth().signInWithCredential(credential);
+  const provider = new OAuthProvider('apple.com');
+  const credential = provider.credential({ idToken: identityToken });
+  const result = await signInWithCredential(auth, credential);
 
-  const snap = await getDoc(doc(db, 'users', result.user.uid));
+  const userRef = doc(db, 'users', result.user.uid);
+  const snap = await getDoc(userRef);
   const isNew = !snap.exists();
 
   if (isNew) {
     const { givenName, familyName } = appleCredential.fullName ?? {};
     const navn = [givenName, familyName].filter(Boolean).join(' ');
     if (navn) {
-      await result.user.updateProfile({ displayName: navn });
+      await updateProfile(result.user, { displayName: navn });
     }
-    await setDoc(doc(db, 'users', result.user.uid), {
+    await setDoc(userRef, {
       navn: navn || result.user.displayName || '',
       epost: result.user.email || appleCredential.email || '',
       opprettet: serverTimestamp(),

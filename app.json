@@ -44,10 +44,7 @@
       "expo-font",
       "expo-web-browser",
       "expo-apple-authentication",
-      "@react-native-firebase/app",
-      "@react-native-firebase/auth",
       "@react-native-google-signin/google-signin",
-      "./app.plugin",
       [
         "expo-build-properties",
         {
