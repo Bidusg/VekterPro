@@ -1,14 +1,12 @@
-// Lagrer hvilke lærebok-moduler brukeren har markert som lest.
-// Struktur: users/{uid}/lestModuler/{moduleId} = { lestDato }
-// Lagrer også "sist øvd kategori" for "Fortsett der du slapp".
-import firestore from '@react-native-firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, deleteDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 export async function markerLest(userId, moduleId) {
   if (!userId || !moduleId) return;
   try {
-    await firestore().collection('users').doc(userId).collection('lestModuler').doc(moduleId).set({
+    await setDoc(doc(db, 'users', userId, 'lestModuler', moduleId), {
       moduleId,
-      lestDato: firestore.FieldValue.serverTimestamp(),
+      lestDato: serverTimestamp(),
     });
   } catch (e) {
     console.error('[fremgang] markerLest feil:', e.message);
@@ -18,7 +16,7 @@ export async function markerLest(userId, moduleId) {
 export async function avmarkerLest(userId, moduleId) {
   if (!userId || !moduleId) return;
   try {
-    await firestore().collection('users').doc(userId).collection('lestModuler').doc(moduleId).delete();
+    await deleteDoc(doc(db, 'users', userId, 'lestModuler', moduleId));
   } catch (e) {
     console.error('[fremgang] avmarkerLest feil:', e.message);
   }
@@ -27,7 +25,7 @@ export async function avmarkerLest(userId, moduleId) {
 export async function hentLesteModuler(userId) {
   if (!userId) return [];
   try {
-    const snap = await firestore().collection('users').doc(userId).collection('lestModuler').get();
+    const snap = await getDocs(collection(db, 'users', userId, 'lestModuler'));
     return snap.docs.map((d) => d.id);
   } catch (e) {
     console.error('[fremgang] hentLesteModuler feil:', e.message);
@@ -38,9 +36,9 @@ export async function hentLesteModuler(userId) {
 export async function settSistKategori(userId, kategori) {
   if (!userId || !kategori) return;
   try {
-    await firestore().collection('users').doc(userId).collection('meta').doc('sistKategori').set({
+    await setDoc(doc(db, 'users', userId, 'meta', 'sistKategori'), {
       kategori,
-      tid: firestore.FieldValue.serverTimestamp(),
+      tid: serverTimestamp(),
     });
   } catch (e) {
     console.error('[fremgang] settSistKategori feil:', e.message);
@@ -50,8 +48,8 @@ export async function settSistKategori(userId, kategori) {
 export async function hentSistKategori(userId) {
   if (!userId) return null;
   try {
-    const snap = await firestore().collection('users').doc(userId).collection('meta').doc('sistKategori').get();
-    return snap.exists ? snap.data().kategori : null;
+    const snap = await getDoc(doc(db, 'users', userId, 'meta', 'sistKategori'));
+    return snap.exists() ? snap.data().kategori : null;
   } catch (e) {
     return null;
   }

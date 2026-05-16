@@ -1,14 +1,14 @@
-// E-post/passord-autentisering for VekterPro.
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 export async function registrer(epost, passord, navn) {
   const cred = await auth().createUserWithEmailAndPassword(epost, passord);
   await cred.user.updateProfile({ displayName: navn });
-  await firestore().collection('users').doc(cred.user.uid).set({
+  await setDoc(doc(db, 'users', cred.user.uid), {
     navn,
     epost,
-    opprettet: firestore.FieldValue.serverTimestamp(),
+    opprettet: serverTimestamp(),
   });
   return cred.user;
 }
@@ -27,6 +27,6 @@ export function lyttPaaAuth(callback) {
 }
 
 export async function hentProfil(uid) {
-  const snap = await firestore().collection('users').doc(uid).get();
-  return snap.exists ? snap.data() : null;
+  const snap = await getDoc(doc(db, 'users', uid));
+  return snap.exists() ? snap.data() : null;
 }

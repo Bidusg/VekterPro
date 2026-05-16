@@ -1,9 +1,9 @@
-// Social authentication (Google + Apple) for VekterPro.
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
+import { db } from '../config/firebase';
 
 GoogleSignin.configure({
   webClientId: '351385798526-m1q9qpi8cnqhl7ar5td89d4eolfjdqf0.apps.googleusercontent.com',
@@ -18,16 +18,16 @@ export async function googleSignIn() {
   const credential = auth.GoogleAuthProvider.credential(data.idToken);
   const result = await auth().signInWithCredential(credential);
 
-  const snap = await firestore().collection('users').doc(result.user.uid).get();
-  if (!snap.exists) {
-    await firestore().collection('users').doc(result.user.uid).set({
+  const snap = await getDoc(doc(db, 'users', result.user.uid));
+  if (!snap.exists()) {
+    await setDoc(doc(db, 'users', result.user.uid), {
       navn: result.user.displayName || '',
       epost: result.user.email || '',
-      opprettet: firestore.FieldValue.serverTimestamp(),
+      opprettet: serverTimestamp(),
     });
   }
 
-  return { user: result.user, isNewUser: !snap.exists };
+  return { user: result.user, isNewUser: !snap.exists() };
 }
 
 // ─── Apple Sign-In ────────────────────────────────────────────────────────────
@@ -62,8 +62,8 @@ export async function appleSignIn() {
   const credential = auth.AppleAuthProvider.credential(identityToken);
   const result = await auth().signInWithCredential(credential);
 
-  const snap = await firestore().collection('users').doc(result.user.uid).get();
-  const isNew = !snap.exists;
+  const snap = await getDoc(doc(db, 'users', result.user.uid));
+  const isNew = !snap.exists();
 
   if (isNew) {
     const { givenName, familyName } = appleCredential.fullName ?? {};
@@ -71,10 +71,10 @@ export async function appleSignIn() {
     if (navn) {
       await result.user.updateProfile({ displayName: navn });
     }
-    await firestore().collection('users').doc(result.user.uid).set({
+    await setDoc(doc(db, 'users', result.user.uid), {
       navn: navn || result.user.displayName || '',
       epost: result.user.email || appleCredential.email || '',
-      opprettet: firestore.FieldValue.serverTimestamp(),
+      opprettet: serverTimestamp(),
     });
   }
 
