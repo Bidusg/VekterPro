@@ -6,6 +6,7 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
+import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/StoreContext';
@@ -14,23 +15,37 @@ import { MODULES, getQuestionsForModule } from '../../data/modules';
 
 const CHAPTERS = Array.from({ length: 15 }, (_, i) => i + 1);
 
+// Static — computed once at module load, never changes
+const CHAPTER_COUNTS = CHAPTERS.reduce((acc, n) => {
+  acc[n] = QUESTIONS.filter((q) => q.kapittel === n).length;
+  return acc;
+}, {});
+
+const MODULE_Q_COUNTS = MODULES.reduce((acc, mod) => {
+  acc[mod.id] = getQuestionsForModule(mod.id, QUESTIONS).length;
+  return acc;
+}, {});
+
 const { width } = Dimensions.get('window');
+
+function pctColor(pct) {
+  if (pct >= 75) return '#2ECC71';
+  if (pct >= 50) return '#F39C12';
+  return '#E74C3C';
+}
 
 export default function OvingTab() {
   const router = useRouter();
   const { progress } = useAppStore();
 
-  function modStats(modId) {
-    const p = progress[modId];
-    if (!p || p.total === 0) return { pct: 0 };
-    return { pct: Math.round((p.correct / p.total) * 100) };
-  }
-
-  function pctColor(pct) {
-    if (pct >= 75) return '#2ECC71';
-    if (pct >= 50) return '#F39C12';
-    return '#E74C3C';
-  }
+  const modStats = useMemo(() => {
+    const result = {};
+    for (const mod of MODULES) {
+      const p = progress[mod.id];
+      result[mod.id] = (!p || p.total === 0) ? { pct: 0 } : { pct: Math.round((p.correct / p.total) * 100) };
+    }
+    return result;
+  }, [progress]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -72,28 +87,24 @@ export default function OvingTab() {
           style={styles.kapScroll}
           contentContainerStyle={styles.kapScrollContent}
         >
-          {CHAPTERS.map((n) => {
-            const count = QUESTIONS.filter((q) => q.kapittel === n).length;
-            return (
-              <TouchableOpacity
-                key={n}
-                style={styles.kapChip}
-                onPress={() => router.push({ pathname: '/quiz', params: { mode: 'practice', chapter: n } })}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.kapChipNum}>{n}</Text>
-                <Text style={styles.kapChipCount}>{count} sp.</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {CHAPTERS.map((n) => (
+            <TouchableOpacity
+              key={n}
+              style={styles.kapChip}
+              onPress={() => router.push({ pathname: '/quiz', params: { mode: 'practice', chapter: n } })}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.kapChipNum}>{n}</Text>
+              <Text style={styles.kapChipCount}>{CHAPTER_COUNTS[n]} sp.</Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
         <Text style={styles.sectionTitle}>15 kompetansemål</Text>
 
         <View style={styles.grid}>
           {MODULES.map((mod) => {
-            const stats = modStats(mod.id);
-            const qs = getQuestionsForModule(mod.id, QUESTIONS);
+            const stats = modStats[mod.id];
             return (
               <TouchableOpacity
                 key={mod.id}
@@ -108,7 +119,7 @@ export default function OvingTab() {
                   <Text style={styles.icon}>{mod.icon}</Text>
                 </View>
                 <Text style={styles.name} numberOfLines={2}>{mod.name}</Text>
-                <Text style={styles.count}>{qs.length} spørsmål</Text>
+                <Text style={styles.count}>{MODULE_Q_COUNTS[mod.id]} spørsmål</Text>
                 <View style={styles.barBg}>
                   <View style={[styles.barFill, { width: `${stats.pct}%`, backgroundColor: pctColor(stats.pct) }]} />
                 </View>

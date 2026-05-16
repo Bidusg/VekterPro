@@ -10,7 +10,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { useAppStore } from '../../store/StoreContext';
 import { hentStreak } from '../../services/streak';
 import { hentKategoriStat } from '../../services/statistikk';
@@ -70,20 +70,28 @@ export default function HjemTab() {
     }, [userId])
   );
 
-  const sterkeste = [...katStats].filter((k) => k.totalt >= 3).sort((a, b) => b.score - a.score).slice(0, 3);
-  const svakeste = [...katStats].filter((k) => k.totalt >= 3).sort((a, b) => a.score - b.score).slice(0, 3);
+  const sterkeste = useMemo(
+    () => [...katStats].filter((k) => k.totalt >= 3).sort((a, b) => b.score - a.score).slice(0, 3),
+    [katStats],
+  );
+  const svakeste = useMemo(
+    () => [...katStats].filter((k) => k.totalt >= 3).sort((a, b) => a.score - b.score).slice(0, 3),
+    [katStats],
+  );
+  const størsteFeilbankKat = useMemo(
+    () => Object.entries(feilbankPerKat).sort((a, b) => b[1] - a[1])[0],
+    [feilbankPerKat],
+  );
 
-  const størsteFeilbankKat = Object.entries(feilbankPerKat).sort((a, b) => b[1] - a[1])[0];
-
-  function startDagens() {
+  const startDagens = useCallback(() => {
     if (dagligStatus.fullført) {
       Alert.alert('Allerede fullført', `Du fullførte dagens utfordring (${dagligStatus.score}%). Kom tilbake i morgen!`);
       return;
     }
     router.push('/daglig');
-  }
+  }, [dagligStatus, router]);
 
-  function fortsett() {
+  const fortsett = useCallback(() => {
     if (sistKat) {
       const mod = findKatModul(sistKat);
       if (mod) {
@@ -92,14 +100,14 @@ export default function HjemTab() {
       }
     }
     router.push('/(tabs)/oving');
-  }
+  }, [sistKat, router]);
 
-  function logout() {
+  const logout = useCallback(() => {
     Alert.alert('Logg ut', 'Vil du logge ut?', [
       { text: 'Avbryt', style: 'cancel' },
       { text: 'Logg ut', style: 'destructive', onPress: loggUt },
     ]);
-  }
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -202,7 +210,7 @@ export default function HjemTab() {
   );
 }
 
-function KatRow({ kat, accent }) {
+const KatRow = memo(function KatRow({ kat, accent }) {
   const router = useRouter();
   const mod = findKatModul(kat.kategori);
   return (
@@ -218,7 +226,7 @@ function KatRow({ kat, accent }) {
       <Text style={[styles.katScore, { color: accent }]}>{kat.score}%</Text>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0f0f1a' },

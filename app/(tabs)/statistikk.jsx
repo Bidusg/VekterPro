@@ -9,7 +9,7 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart, BarChart } from 'react-native-chart-kit';
-import { useCallback, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { useAppStore } from '../../store/StoreContext';
 import {
   hentDagligStat,
@@ -59,6 +59,26 @@ export default function StatistikkTab() {
     }, [userId])
   );
 
+  // All useMemo hooks before any early returns
+  const linjeData = useMemo(() => data.dager.length > 0 ? {
+    labels: data.dager.map((d) => d.dato.slice(5)),
+    datasets: [{ data: data.dager.map((d) => d.score) }],
+  } : null, [data.dager]);
+
+  const topKat = useMemo(
+    () => [...data.kat].filter((k) => k.totalt >= 1).sort((a, b) => b.totalt - a.totalt).slice(0, 8),
+    [data.kat],
+  );
+  const barData = useMemo(() => topKat.length > 0 ? {
+    labels: topKat.map((k) => k.kategori.slice(0, 6)),
+    datasets: [{ data: topKat.map((k) => k.score) }],
+  } : null, [topKat]);
+
+  const sortedKat = useMemo(
+    () => [...data.kat].sort((a, b) => b.score - a.score),
+    [data.kat],
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -66,19 +86,6 @@ export default function StatistikkTab() {
       </SafeAreaView>
     );
   }
-
-  // Linjegraf: score per dag
-  const linjeData = data.dager.length > 0 ? {
-    labels: data.dager.map((d) => d.dato.slice(5)),
-    datasets: [{ data: data.dager.map((d) => d.score) }],
-  } : null;
-
-  // Søylediagram: kategori-score (top 8)
-  const topKat = [...data.kat].filter((k) => k.totalt >= 1).sort((a, b) => b.totalt - a.totalt).slice(0, 8);
-  const barData = topKat.length > 0 ? {
-    labels: topKat.map((k) => k.kategori.slice(0, 6)),
-    datasets: [{ data: topKat.map((k) => k.score) }],
-  } : null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -132,7 +139,7 @@ export default function StatistikkTab() {
         {data.kat.length > 0 && (
           <>
             <Text style={styles.chartTitle}>Alle kategorier</Text>
-            {[...data.kat].sort((a, b) => b.score - a.score).map((k) => (
+            {sortedKat.map((k) => (
               <View key={k.kategori} style={styles.katRow}>
                 <Text style={styles.katName}>{k.kategori}</Text>
                 <View style={styles.katBarBg}>
@@ -148,7 +155,7 @@ export default function StatistikkTab() {
   );
 }
 
-function StatBox({ icon, num, lbl, color = '#6C63FF' }) {
+const StatBox = memo(function StatBox({ icon, num, lbl, color = '#6C63FF' }) {
   return (
     <View style={styles.statBox}>
       <Text style={styles.statIcon}>{icon}</Text>
@@ -156,7 +163,7 @@ function StatBox({ icon, num, lbl, color = '#6C63FF' }) {
       <Text style={styles.statLbl}>{lbl}</Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0f0f1a' },
