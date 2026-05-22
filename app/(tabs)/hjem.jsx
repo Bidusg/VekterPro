@@ -9,10 +9,9 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/StoreContext';
 import { hentStreak } from '../../services/streak';
 import { hentKategoriStat } from '../../services/statistikk';

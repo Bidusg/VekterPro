@@ -1,10 +1,13 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Image } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { StoreProvider, useAppStore } from '../store/StoreContext';
 import { sjekkOgBeOmTillatelse, planleggDagligVarsel } from '../services/notifications';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 if (__DEV__) {
   console.log('--- VekterPro oppstart ---');
@@ -89,6 +92,76 @@ const ebStyles = StyleSheet.create({
 
 const ADMIN_EMAILS = ['kidus.fisseha002@gmail.com'];
 
+function SplashOverlay() {
+  const { authReady } = useAppStore();
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(0.3)).current;
+  const pulseAnim = useRef(new Animated.Value(0.85)).current;
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
+      useNativeDriver: true,
+    }).start();
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.4, duration: 850, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.85, duration: 850, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, []);
+
+  useEffect(() => {
+    if (!authReady) return;
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 450,
+      useNativeDriver: true,
+    }).start(() => setVisible(false));
+  }, [authReady]);
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View style={[splashStyles.container, { opacity: fadeAnim }]}>
+      <Animated.Image
+        source={require('../assets/icon.png')}
+        style={[splashStyles.logo, { transform: [{ scale: scaleAnim }] }]}
+        resizeMode="contain"
+      />
+      <Text style={splashStyles.appName}>VekterEksamen</Text>
+      <Animated.View style={[splashStyles.pulse, { transform: [{ scale: pulseAnim }] }]} />
+    </Animated.View>
+  );
+}
+
+const splashStyles = StyleSheet.create({
+  container: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0d1b3e',
+    zIndex: 999,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logo: { width: 120, height: 120, borderRadius: 28 },
+  appName: { color: '#fff', fontSize: 28, fontWeight: '900', marginTop: 24, letterSpacing: 0.5 },
+  pulse: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#D4AF37',
+    marginTop: 40,
+  },
+});
+
 function AuthGate() {
   const { authReady, userId, epost, loading, isPaid } = useAppStore();
   const router = useRouter();
@@ -103,13 +176,10 @@ function AuthGate() {
     if (!userId) {
       if (!inAuth && !inLanding) router.replace('/');
     } else if (ADMIN_EMAILS.includes(epost)) {
-      // Admin-bruker: hopp over betaling, gå rett til dashboard
       if (inAuth || inLanding || inPayment) router.replace('/(tabs)/hjem');
     } else if (!isPaid) {
-      // Innlogget men ikke betalt: send til betalingssiden
       if (!inPayment) router.replace('/betaling');
     } else {
-      // Innlogget og betalt: send til dashboard
       if (inAuth || inLanding || inPayment) router.replace('/(tabs)/hjem');
     }
   }, [authReady, userId, epost, loading, isPaid, segments]);
@@ -122,13 +192,6 @@ function AuthGate() {
     })();
   }, [userId]);
 
-  if (!authReady || loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#0f0f1a', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator color="#6C63FF" size="large" />
-      </View>
-    );
-  }
   return null;
 }
 
@@ -138,7 +201,6 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <StoreProvider>
           <StatusBar style="light" />
-          <AuthGate />
           <Stack
             screenOptions={{
               headerShown: false,
@@ -146,6 +208,8 @@ export default function RootLayout() {
               animation: 'fade',
             }}
           />
+          <AuthGate />
+          <SplashOverlay />
         </StoreProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

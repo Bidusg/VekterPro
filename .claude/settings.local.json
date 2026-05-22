@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(python -c \"import json; d=json.load\\(open\\('package.json'\\)\\); print\\('expo:', d['dependencies']['expo']\\); print\\('rn:', d['dependencies']['react-native']\\)\")"
     ]
   }
 }

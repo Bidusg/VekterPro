@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.Kidus.VekterEksamen",
       "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",
+      "jsEngine": "hermes",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -28,7 +29,8 @@
         "backgroundColor": "#0f0f1a"
       },
       "package": "com.Kidus.Vektereksamen",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "jsEngine": "hermes"
     },
     "platforms": [
       "ios",
