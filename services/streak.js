@@ -1,5 +1,8 @@
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { withTimeout } from './firebaseUtils';
+
+const _cache = {};
 
 function streakRef(userId) {
   return doc(db, 'users', userId, 'meta', 'streak');
@@ -17,13 +20,16 @@ function dagerMellom(d1, d2) {
 
 export async function hentStreak(userId) {
   if (!userId) return { current: 0, longest: 0, sistAktiv: null };
+  const cacheKey = `streak_${userId}`;
   try {
-    const snap = await getDoc(streakRef(userId));
+    const snap = await withTimeout(getDoc(streakRef(userId)));
     if (!snap.exists()) return { current: 0, longest: 0, sistAktiv: null };
-    return snap.data();
+    const data = snap.data();
+    _cache[cacheKey] = data;
+    return data;
   } catch (e) {
     console.error('[streak] hentStreak feil:', e.message);
-    return { current: 0, longest: 0, sistAktiv: null };
+    return _cache[cacheKey] ?? { current: 0, longest: 0, sistAktiv: null };
   }
 }
 
@@ -31,7 +37,7 @@ export async function registrerAktivitet(userId) {
   if (!userId) return;
   try {
     const ref = streakRef(userId);
-    const snap = await getDoc(ref);
+    const snap = await withTimeout(getDoc(ref));
     const idag = dagsformat();
     const data = snap.exists() ? snap.data() : { current: 0, longest: 0, sistAktiv: null };
 
@@ -50,7 +56,7 @@ export async function registrerAktivitet(userId) {
       sistAktiv: idag,
       oppdatert: serverTimestamp(),
     };
-    await setDoc(ref, oppdatert);
+    await withTimeout(setDoc(ref, oppdatert));
     return oppdatert;
   } catch (e) {
     console.error('[streak] registrerAktivitet feil:', e.message);

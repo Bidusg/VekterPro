@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/StoreContext';
 import { QUESTIONS } from '../../data/questions';
 import { MODULES, getQuestionsForModule } from '../../data/modules';
@@ -37,6 +37,8 @@ function pctColor(pct) {
 export default function OvingTab() {
   const router = useRouter();
   const { progress } = useAppStore();
+  const insets = useSafeAreaInsets();
+  const scrollPb = 56 + insets.bottom + 16;
 
   const modStats = useMemo(() => {
     const result = {};
@@ -49,7 +51,7 @@ export default function OvingTab() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollPb }]} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>📚 Øving</Text>
         <Text style={styles.sub}>Velg en modul for å øve</Text>
 
@@ -137,7 +139,7 @@ export default function OvingTab() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0f0f1a' },
-  scroll: { padding: 20, paddingBottom: 40 },
+  scroll: { padding: 20 },
   title: { fontSize: 26, fontWeight: '900', color: '#fff' },
   sub: { fontSize: 13, color: '#8b9ab5', marginBottom: 16 },
 

@@ -9,7 +9,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useAppStore as useStore } from '../store/StoreContext';
 import { hentFeilbank } from '../services/feilbank';
 import { MODULES } from '../data/modules';
@@ -41,15 +41,14 @@ export default function FeilbankScreen() {
     }, [userId])
   );
 
-  // Grupper per kategori
-  const grupper = entries.reduce((acc, e) => {
+  const grupper = useMemo(() => entries.reduce((acc, e) => {
     const k = e.kategori || 'Ukjent';
     if (!acc[k]) acc[k] = [];
     acc[k].push(e);
     return acc;
-  }, {});
+  }, {}), [entries]);
 
-  const kategorier = Object.keys(grupper).sort();
+  const kategorier = useMemo(() => Object.keys(grupper).sort(), [grupper]);
 
   function øvAlle() {
     if (entries.length === 0) return;

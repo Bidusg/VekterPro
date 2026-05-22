@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { lyttPaaAuth, hentProfil } from '../services/auth';
+import { lyttPaaAuth, hentProfil, oppdaterBetaling } from '../services/auth';
+import { preloadHjem, preloadStat, clearAllCaches } from '../services/tabCache';
 
 const KEYS = {
   PAYMENT: '@vekterpro_payment',
   PROGRESS: '@vekterpro_progress',
   SEEN_QUESTIONS: '@vekterpro_seen_questions',
   FLASHCARD_STATE: '@vekterpro_flashcards',
+  USER_CACHE: '@vekterpro_user',
 };
 
 const defaultProgress = {};
@@ -25,7 +27,7 @@ export function useStore() {
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    loadAll();
+    initFromCache();
     const unsub = lyttPaaAuth(async (user) => {
       try {
         if (user) {
@@ -34,14 +36,30 @@ export function useStore() {
           setNavn(user.displayName || null);
           try {
             const profil = await hentProfil(user.uid);
-            if (profil?.navn) setNavn(profil.navn);
+            const cachedNavn = profil?.navn || user.displayName || null;
+            if (cachedNavn) setNavn(cachedNavn);
+            if (profil?.isPaid === true) setIsPaid(true);
+            AsyncStorage.setItem(KEYS.USER_CACHE, JSON.stringify({
+              uid: user.uid,
+              email: user.email,
+              navn: cachedNavn,
+            }));
           } catch (e) {
             console.error('[auth] hentProfil feil:', e.message);
+            AsyncStorage.setItem(KEYS.USER_CACHE, JSON.stringify({
+              uid: user.uid,
+              email: user.email,
+              navn: user.displayName || null,
+            }));
           }
+          preloadHjem(user.uid);
+          preloadStat(user.uid);
         } else {
           setUserId(null);
           setEpost(null);
           setNavn(null);
+          clearAllCaches();
+          AsyncStorage.removeItem(KEYS.USER_CACHE);
         }
       } catch (e) {
         console.error('[auth] lyttPaaAuth callback feil:', e.message);
@@ -52,13 +70,14 @@ export function useStore() {
     return () => unsub && unsub();
   }, []);
 
-  async function loadAll() {
+  async function initFromCache() {
     try {
-      const [paymentRaw, progressRaw, seenRaw, flashRaw] = await Promise.all([
+      const [paymentRaw, progressRaw, seenRaw, flashRaw, userRaw] = await Promise.all([
         AsyncStorage.getItem(KEYS.PAYMENT),
         AsyncStorage.getItem(KEYS.PROGRESS),
         AsyncStorage.getItem(KEYS.SEEN_QUESTIONS),
         AsyncStorage.getItem(KEYS.FLASHCARD_STATE),
+        AsyncStorage.getItem(KEYS.USER_CACHE),
       ]);
 
       if (paymentRaw) {
@@ -70,12 +89,19 @@ export function useStore() {
           setPaymentExpiry(payment.expiry);
         }
       }
-
       if (progressRaw) setProgress(JSON.parse(progressRaw));
       if (seenRaw) setSeenQuestions(JSON.parse(seenRaw));
       if (flashRaw) setFlashcardState(JSON.parse(flashRaw));
+
+      if (userRaw) {
+        const cached = JSON.parse(userRaw);
+        setUserId(cached.uid);
+        setEpost(cached.email);
+        if (cached.navn) setNavn(cached.navn);
+        setAuthReady(true); // Vis appen umiddelbart fra cache
+      }
     } catch (e) {
-      console.error('loadAll error', e);
+      console.error('initFromCache error', e);
     } finally {
       setLoading(false);
     }
@@ -91,10 +117,17 @@ export function useStore() {
     const expiry = now + (durations[plan] || durations.month);
     const payment = { plan, expiry, purchasedAt: now };
     await AsyncStorage.setItem(KEYS.PAYMENT, JSON.stringify(payment));
+    if (userId) {
+      try {
+        await oppdaterBetaling(userId, plan, expiry);
+      } catch (e) {
+        console.error('[purchasePlan] Firestore feil:', e.message);
+      }
+    }
     setIsPaid(true);
     setPaymentPlan(plan);
     setPaymentExpiry(expiry);
-  }, []);
+  }, [userId]);
 
   const updateProgress = useCallback(async (cat, isCorrect) => {
     setProgress((prev) => {

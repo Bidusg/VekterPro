@@ -36,3 +36,12 @@ export async function hentProfil(uid) {
   const snap = await getDoc(doc(db, 'users', uid));
   return snap.exists() ? snap.data() : null;
 }
+
+export async function oppdaterBetaling(uid, plan, expiry) {
+  await setDoc(doc(db, 'users', uid), {
+    isPaid: true,
+    plan,
+    expiry,
+    betaltTidspunkt: serverTimestamp(),
+  }, { merge: true });
+}

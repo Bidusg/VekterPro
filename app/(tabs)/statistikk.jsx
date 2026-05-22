@@ -3,11 +3,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
-  Dimensions,
+  InteractionManager,
+  useWindowDimensions,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useAppStore } from '../../store/StoreContext';
@@ -18,9 +18,8 @@ import {
   hentTotalAntallSvar,
 } from '../../services/statistikk';
 import { hentStreak } from '../../services/streak';
-
-const { width } = Dimensions.get('window');
-const chartW = width - 40;
+import { statCache } from '../../services/tabCache';
+import SkeletonBox from '../../components/SkeletonBox';
 
 const chartConfig = {
   backgroundGradientFrom: '#1a1a2e',
@@ -32,34 +31,79 @@ const chartConfig = {
   propsForBackgroundLines: { stroke: 'rgba(255,255,255,0.05)' },
 };
 
+function StatSkeleton({ boxWidth }) {
+  return (
+    <View style={skStyles.wrap}>
+      <SkeletonBox width={140} height={28} borderRadius={8} style={skStyles.mb6} />
+      <SkeletonBox width={180} height={14} borderRadius={6} style={skStyles.mb20} />
+      <View style={skStyles.grid}>
+        <SkeletonBox width={boxWidth} height={76} borderRadius={14} />
+        <SkeletonBox width={boxWidth} height={76} borderRadius={14} />
+        <SkeletonBox width={boxWidth} height={76} borderRadius={14} />
+        <SkeletonBox width={boxWidth} height={76} borderRadius={14} />
+      </View>
+      <SkeletonBox width={120} height={17} borderRadius={6} style={skStyles.mb10} />
+      <SkeletonBox height={200} borderRadius={14} style={skStyles.mb16} />
+      <SkeletonBox width={120} height={17} borderRadius={6} style={skStyles.mb10} />
+      <SkeletonBox height={220} borderRadius={14} style={skStyles.mb16} />
+    </View>
+  );
+}
+
+const skStyles = StyleSheet.create({
+  wrap: { paddingTop: 4 },
+  mb6: { marginBottom: 6 },
+  mb10: { marginBottom: 10 },
+  mb16: { marginBottom: 16 },
+  mb20: { marginBottom: 20, },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
+});
+
 export default function StatistikkTab() {
   const { userId } = useAppStore();
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({
-    dager: [], kat: [], eks: { antall: 0, bestattPct: 0 }, total: 0, streak: { current: 0, longest: 0 },
-  });
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
+  const isSmall = height < 700;
+  const padding = isSmall ? 16 : 20;
+  const scrollPb = 56 + insets.bottom + 16;
+  const chartW = width - padding * 2;
+  const boxWidth = (width - padding * 2 - 10) / 2;
+
+  const initData = statCache.data;
+  const [loading, setLoading] = useState(!initData);
+  const [data, setData] = useState(
+    initData || { dager: [], kat: [], eks: { antall: 0, bestattPct: 0 }, total: 0, streak: { current: 0, longest: 0 } }
+  );
 
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
       let alive = true;
-      setLoading(true);
-      Promise.all([
-        hentDagligStat(userId, 14),
-        hentKategoriStat(userId),
-        hentEksamensforsok(userId),
-        hentTotalAntallSvar(userId),
-        hentStreak(userId),
-      ]).then(([dager, kat, eks, total, streak]) => {
-        if (!alive) return;
-        setData({ dager, kat, eks, total, streak });
-        setLoading(false);
+      const task = InteractionManager.runAfterInteractions(() => {
+        if (!statCache.data) setLoading(true);
+        Promise.all([
+          hentDagligStat(userId, 14),
+          hentKategoriStat(userId),
+          hentEksamensforsok(userId),
+          hentTotalAntallSvar(userId),
+          hentStreak(userId),
+        ]).then(([dager, kat, eks, total, streak]) => {
+          if (!alive) return;
+          statCache.data = { dager, kat, eks, total, streak };
+          setData({ dager, kat, eks, total, streak });
+          setLoading(false);
+        }).catch(() => {
+          if (alive) setLoading(false);
+        });
       });
-      return () => { alive = false; };
+      return () => {
+        alive = false;
+        task.cancel();
+      };
     }, [userId])
   );
 
-  // All useMemo hooks before any early returns
   const linjeData = useMemo(() => data.dager.length > 0 ? {
     labels: data.dager.map((d) => d.dato.slice(5)),
     datasets: [{ data: data.dager.map((d) => d.score) }],
@@ -79,75 +123,76 @@ export default function StatistikkTab() {
     [data.kat],
   );
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <ActivityIndicator color="#6C63FF" style={{ marginTop: 60 }} />
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>📊 Statistikk</Text>
-        <Text style={styles.sub}>Din fremgang over tid</Text>
-
-        {/* Tall-rad */}
-        <View style={styles.statGrid}>
-          <StatBox icon="📝" num={data.total} lbl="Spørsmål totalt" />
-          <StatBox icon="🎯" num={data.eks.antall} lbl="Eksamensforsøk" />
-          <StatBox icon="✅" num={`${data.eks.bestattPct}%`} lbl="Beståttrate" color="#2ECC71" />
-          <StatBox icon="🔥" num={data.streak.longest} lbl="Beste streak" color="#F39C12" />
-        </View>
-
-        {/* Linjegraf */}
-        <Text style={styles.chartTitle}>Score siste 14 dager</Text>
-        {linjeData ? (
-          <LineChart
-            data={linjeData}
-            width={chartW}
-            height={200}
-            chartConfig={chartConfig}
-            bezier
-            style={styles.chart}
-            withInnerLines
-            fromZero
-          />
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: padding, paddingTop: padding, paddingBottom: scrollPb }}
+        showsVerticalScrollIndicator={false}
+      >
+        {loading ? (
+          <StatSkeleton boxWidth={boxWidth} />
         ) : (
-          <View style={styles.emptyChart}><Text style={styles.emptyText}>Svar på noen spørsmål for å se grafen</Text></View>
-        )}
-
-        {/* Bar-chart */}
-        <Text style={styles.chartTitle}>Score per kategori</Text>
-        {barData ? (
-          <BarChart
-            data={barData}
-            width={chartW}
-            height={220}
-            chartConfig={chartConfig}
-            fromZero
-            yAxisSuffix="%"
-            style={styles.chart}
-            verticalLabelRotation={30}
-          />
-        ) : (
-          <View style={styles.emptyChart}><Text style={styles.emptyText}>Ingen kategoridata enda</Text></View>
-        )}
-
-        {/* Kategori-liste */}
-        {data.kat.length > 0 && (
           <>
-            <Text style={styles.chartTitle}>Alle kategorier</Text>
-            {sortedKat.map((k) => (
-              <View key={k.kategori} style={styles.katRow}>
-                <Text style={styles.katName}>{k.kategori}</Text>
-                <View style={styles.katBarBg}>
-                  <View style={[styles.katBarFill, { width: `${k.score}%`, backgroundColor: k.score >= 75 ? '#2ECC71' : k.score >= 50 ? '#F39C12' : '#E74C3C' }]} />
-                </View>
-                <Text style={styles.katScore}>{k.score}%</Text>
-              </View>
-            ))}
+            <Text style={styles.title}>📊 Statistikk</Text>
+            <Text style={styles.sub}>Din fremgang over tid</Text>
+
+            {/* Tall-rad */}
+            <View style={styles.statGrid}>
+              <StatBox icon="📝" num={data.total} lbl="Spørsmål totalt" boxWidth={boxWidth} />
+              <StatBox icon="🎯" num={data.eks.antall} lbl="Eksamensforsøk" boxWidth={boxWidth} />
+              <StatBox icon="✅" num={`${data.eks.bestattPct}%`} lbl="Beståttrate" color="#2ECC71" boxWidth={boxWidth} />
+              <StatBox icon="🔥" num={data.streak.longest} lbl="Beste streak" color="#F39C12" boxWidth={boxWidth} />
+            </View>
+
+            {/* Linjegraf */}
+            <Text style={styles.chartTitle}>Score siste 14 dager</Text>
+            {linjeData ? (
+              <LineChart
+                data={linjeData}
+                width={chartW}
+                height={200}
+                chartConfig={chartConfig}
+                bezier
+                style={styles.chart}
+                withInnerLines
+                fromZero
+              />
+            ) : (
+              <View style={styles.emptyChart}><Text style={styles.emptyText}>Svar på noen spørsmål for å se grafen</Text></View>
+            )}
+
+            {/* Bar-chart */}
+            <Text style={styles.chartTitle}>Score per kategori</Text>
+            {barData ? (
+              <BarChart
+                data={barData}
+                width={chartW}
+                height={220}
+                chartConfig={chartConfig}
+                fromZero
+                yAxisSuffix="%"
+                style={styles.chart}
+                verticalLabelRotation={30}
+              />
+            ) : (
+              <View style={styles.emptyChart}><Text style={styles.emptyText}>Ingen kategoridata enda</Text></View>
+            )}
+
+            {/* Kategori-liste */}
+            {data.kat.length > 0 && (
+              <>
+                <Text style={styles.chartTitle}>Alle kategorier</Text>
+                {sortedKat.map((k) => (
+                  <View key={k.kategori} style={styles.katRow}>
+                    <Text style={styles.katName}>{k.kategori}</Text>
+                    <View style={styles.katBarBg}>
+                      <View style={[styles.katBarFill, { width: `${k.score}%`, backgroundColor: k.score >= 75 ? '#2ECC71' : k.score >= 50 ? '#F39C12' : '#E74C3C' }]} />
+                    </View>
+                    <Text style={styles.katScore}>{k.score}%</Text>
+                  </View>
+                ))}
+              </>
+            )}
           </>
         )}
       </ScrollView>
@@ -155,9 +200,9 @@ export default function StatistikkTab() {
   );
 }
 
-const StatBox = memo(function StatBox({ icon, num, lbl, color = '#6C63FF' }) {
+const StatBox = memo(function StatBox({ icon, num, lbl, color = '#6C63FF', boxWidth }) {
   return (
-    <View style={styles.statBox}>
+    <View style={[styles.statBox, { width: boxWidth }]}>
       <Text style={styles.statIcon}>{icon}</Text>
       <Text style={[styles.statNum, { color }]}>{num}</Text>
       <Text style={styles.statLbl}>{lbl}</Text>
@@ -167,13 +212,11 @@ const StatBox = memo(function StatBox({ icon, num, lbl, color = '#6C63FF' }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0f0f1a' },
-  scroll: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 26, fontWeight: '900', color: '#fff' },
   sub: { fontSize: 13, color: '#8b9ab5', marginBottom: 20 },
 
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   statBox: {
-    width: (width - 50) / 2,
     padding: 14, borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)',

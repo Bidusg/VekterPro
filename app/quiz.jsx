@@ -24,6 +24,7 @@ import { useState, useEffect, useRef } from 'react';
 
 const { width } = Dimensions.get('window');
 const EXAM_COUNT = 80;
+const QUESTIONS_MAP = new Map(QUESTIONS.map((q) => [String(q.id), q]));
 
 function shuffle(arr) {
   const a = [...arr];
@@ -182,9 +183,13 @@ export default function QuizScreen() {
 
   const erFeilbankØving = !isExam && !!feilbankIds;
   const erDaglig = isDaily && !!dailyIds;
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     buildQuestions();
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, []);
 
   // Reshuffler svaralternativene hver gang et nytt (ubesvart) spørsmål vises
@@ -204,7 +209,7 @@ export default function QuizScreen() {
     if (isDaily && dailyIds) {
       const ids = String(dailyIds).split(',');
       // Behold rekkefølgen fra dailyIds (allerede tilfeldig valgt)
-      pool = ids.map((id) => QUESTIONS.find((q) => String(q.id) === id)).filter(Boolean);
+      pool = ids.map((id) => QUESTIONS_MAP.get(id)).filter(Boolean);
       setQuestions(pool.map(shuffleOptions));
       return;
     }
@@ -261,7 +266,6 @@ export default function QuizScreen() {
       // Skriv til feilbank kun ved første svar (unngå støy ved retting)
       if (erFørsteSvar) {
         const riktig = optIdx === q.ans;
-        console.log('[quiz] EKSAMEN svar – riktig:', riktig, 'userId:', userId, 'qId:', q.id);
         if (riktig) {
           registrerRiktigSvar(userId, q);
         } else {
@@ -271,7 +275,7 @@ export default function QuizScreen() {
       }
 
       if (erFørsteSvar) {
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           if (current + 1 >= questions.length) {
             setDone(true);
           } else {
@@ -292,12 +296,10 @@ export default function QuizScreen() {
 
       // Skriv til feilbank
       if (erFørsteSvar) {
-        console.log('[quiz] ØVING svar – riktig:', correct, 'userId:', userId, 'qId:', q.id);
         loggSvarStat(q, correct);
         if (correct) {
           registrerRiktigSvar(userId, q).then((res) => {
             if (res?.fjernet && erFeilbankØving) {
-              console.log('[quiz] fjerner spørsmål', q.id, 'fra denne øktens pool');
               setRemovedIds((prev) => {
                 const next = new Set(prev);
                 next.add(q.id);
@@ -315,7 +317,7 @@ export default function QuizScreen() {
 
       if (correct) {
         // Auto-advance kun ved riktig svar
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           goToNext();
         }, 1400);
       }

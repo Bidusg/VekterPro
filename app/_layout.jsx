@@ -6,11 +6,12 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import { StoreProvider, useAppStore } from '../store/StoreContext';
 import { sjekkOgBeOmTillatelse, planleggDagligVarsel } from '../services/notifications';
 
-// Kjøres ved modulinnlasting — før Firebase initialiseres
-console.log('--- VekterPro oppstart ---');
-console.log('FIREBASE_API_KEY:', process.env.EXPO_PUBLIC_FIREBASE_WEB_API_KEY ? 'finnes' : 'MANGLER');
-console.log('FIREBASE_APP_ID:', process.env.EXPO_PUBLIC_FIREBASE_WEB_APP_ID ? 'finnes' : 'MANGLER');
-console.log('GOOGLE_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ? 'finnes' : 'MANGLER');
+if (__DEV__) {
+  console.log('--- VekterPro oppstart ---');
+  console.log('FIREBASE_API_KEY:', process.env.EXPO_PUBLIC_FIREBASE_WEB_API_KEY ? 'finnes' : 'MANGLER');
+  console.log('FIREBASE_APP_ID:', process.env.EXPO_PUBLIC_FIREBASE_WEB_APP_ID ? 'finnes' : 'MANGLER');
+  console.log('GOOGLE_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ? 'finnes' : 'MANGLER');
+}
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -86,8 +87,10 @@ const ebStyles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
 
+const ADMIN_EMAILS = ['kidus.fisseha002@gmail.com'];
+
 function AuthGate() {
-  const { authReady, userId, loading, isPaid } = useAppStore();
+  const { authReady, userId, epost, loading, isPaid } = useAppStore();
   const router = useRouter();
   const segments = useSegments();
 
@@ -96,11 +99,12 @@ function AuthGate() {
     const inAuth = segments[0] === 'login' || segments[0] === 'signup';
     const inLanding = segments[0] === undefined || segments[0] === 'index';
     const inPayment = segments[0] === 'betaling';
-    const inTabs = segments[0] === '(tabs)';
 
     if (!userId) {
-      // Uautentisert: kun landing og auth-sider er tillatt
       if (!inAuth && !inLanding) router.replace('/');
+    } else if (ADMIN_EMAILS.includes(epost)) {
+      // Admin-bruker: hopp over betaling, gå rett til dashboard
+      if (inAuth || inLanding || inPayment) router.replace('/(tabs)/hjem');
     } else if (!isPaid) {
       // Innlogget men ikke betalt: send til betalingssiden
       if (!inPayment) router.replace('/betaling');
@@ -108,7 +112,7 @@ function AuthGate() {
       // Innlogget og betalt: send til dashboard
       if (inAuth || inLanding || inPayment) router.replace('/(tabs)/hjem');
     }
-  }, [authReady, userId, loading, isPaid, segments]);
+  }, [authReady, userId, epost, loading, isPaid, segments]);
 
   useEffect(() => {
     if (!userId) return;

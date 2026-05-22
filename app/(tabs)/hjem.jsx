@@ -4,13 +4,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
   Alert,
+  InteractionManager,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo, useCallback, useMemo, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../../store/StoreContext';
 import { hentStreak } from '../../services/streak';
 import { hentKategoriStat } from '../../services/statistikk';
@@ -19,6 +21,8 @@ import { hentSistKategori } from '../../services/laeringsfremgang';
 import { hentDagensStatus } from '../../services/dailyChallenge';
 import { loggUt } from '../../services/auth';
 import { MODULES } from '../../data/modules';
+import { hjemCache } from '../../services/tabCache';
+import SkeletonBox from '../../components/SkeletonBox';
 
 function tidsbasertHilsen() {
   const t = new Date().getHours();
@@ -31,42 +35,86 @@ function findKatModul(kat) {
   return MODULES.find((m) => m.kategorier.includes(kat));
 }
 
+function HjemSkeleton() {
+  return (
+    <View style={skStyles.wrap}>
+      <SkeletonBox height={80} borderRadius={18} style={skStyles.mb16} />
+      <SkeletonBox height={72} borderRadius={16} style={skStyles.mb12} />
+      <SkeletonBox height={62} borderRadius={14} style={skStyles.mb20} />
+      <SkeletonBox width={110} height={18} borderRadius={6} style={skStyles.mb10} />
+      <SkeletonBox height={48} borderRadius={12} style={skStyles.mb8} />
+      <SkeletonBox height={48} borderRadius={12} style={skStyles.mb8} />
+      <SkeletonBox height={48} borderRadius={12} style={skStyles.mb8} />
+      <SkeletonBox width={110} height={18} borderRadius={6} style={skStyles.sectionGap} />
+      <SkeletonBox height={48} borderRadius={12} style={skStyles.mb8} />
+      <SkeletonBox height={48} borderRadius={12} style={skStyles.mb8} />
+    </View>
+  );
+}
+
+const skStyles = StyleSheet.create({
+  wrap: { paddingTop: 4 },
+  mb8: { marginBottom: 8 },
+  mb10: { marginBottom: 10 },
+  mb12: { marginBottom: 12 },
+  mb16: { marginBottom: 16 },
+  mb20: { marginBottom: 20 },
+  sectionGap: { marginTop: 6, marginBottom: 10 },
+});
+
 export default function HjemTab() {
   const router = useRouter();
   const { userId, navn } = useAppStore();
-  const [loading, setLoading] = useState(true);
-  const [streak, setStreak] = useState({ current: 0, longest: 0 });
-  const [katStats, setKatStats] = useState([]);
-  const [feilbankPerKat, setFeilbankPerKat] = useState({});
-  const [sistKat, setSistKat] = useState(null);
-  const [dagligStatus, setDagligStatus] = useState({ fullført: false });
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const scrollPb = 56 + insets.bottom + 16;
+
+  const isSmall = height < 700;
+  const padding = isSmall ? 16 : 20;
+  const greetingSize = isSmall ? 20 : 22;
+
+  const initData = hjemCache.data;
+  const [loading, setLoading] = useState(!initData);
+  const [streak, setStreak] = useState(initData?.streak || { current: 0, longest: 0 });
+  const [katStats, setKatStats] = useState(initData?.katStats || []);
+  const [feilbankPerKat, setFeilbankPerKat] = useState(initData?.feilbankPerKat || {});
+  const [sistKat, setSistKat] = useState(initData?.sistKat || null);
+  const [dagligStatus, setDagligStatus] = useState(initData?.dagligStatus || { fullført: false });
 
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
       let alive = true;
-      setLoading(true);
-      Promise.all([
-        hentStreak(userId),
-        hentKategoriStat(userId),
-        hentFeilbank(userId),
-        hentSistKategori(userId),
-        hentDagensStatus(userId),
-      ]).then(([s, k, f, sk, d]) => {
-        if (!alive) return;
-        setStreak(s);
-        setKatStats(k);
-        const grupper = f.reduce((acc, e) => {
-          const c = e.kategori || 'Ukjent';
-          acc[c] = (acc[c] || 0) + 1;
-          return acc;
-        }, {});
-        setFeilbankPerKat(grupper);
-        setSistKat(sk);
-        setDagligStatus(d);
-        setLoading(false);
+      const task = InteractionManager.runAfterInteractions(() => {
+        if (!hjemCache.data) setLoading(true);
+        Promise.all([
+          hentStreak(userId),
+          hentKategoriStat(userId),
+          hentFeilbank(userId),
+          hentSistKategori(userId),
+          hentDagensStatus(userId),
+        ]).then(([s, k, f, sk, d]) => {
+          if (!alive) return;
+          const grupper = f.reduce((acc, e) => {
+            const c = e.kategori || 'Ukjent';
+            acc[c] = (acc[c] || 0) + 1;
+            return acc;
+          }, {});
+          hjemCache.data = { streak: s, katStats: k, feilbankPerKat: grupper, sistKat: sk, dagligStatus: d };
+          setStreak(s);
+          setKatStats(k);
+          setFeilbankPerKat(grupper);
+          setSistKat(sk);
+          setDagligStatus(d);
+          setLoading(false);
+        }).catch(() => {
+          if (alive) setLoading(false);
+        });
       });
-      return () => { alive = false; };
+      return () => {
+        alive = false;
+        task.cancel();
+      };
     }, [userId])
   );
 
@@ -111,11 +159,16 @@ export default function HjemTab() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: padding, paddingTop: padding, paddingBottom: scrollPb }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>{tidsbasertHilsen()}{navn ? `, ${navn}` : ''}!</Text>
+            <Text style={[styles.greeting, { fontSize: greetingSize }]}>
+              {tidsbasertHilsen()}{navn ? `, ${navn}` : ''}!
+            </Text>
             <Text style={styles.sub}>Klar for å lære i dag?</Text>
           </View>
           <TouchableOpacity onPress={logout} style={styles.iconBtn}>
@@ -124,7 +177,7 @@ export default function HjemTab() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color="#6C63FF" style={{ marginTop: 40 }} />
+          <HjemSkeleton />
         ) : (
           <>
             {/* Streak */}
@@ -162,6 +215,20 @@ export default function HjemTab() {
                 <Text style={styles.continueSub}>{sistKat || 'Velg en kategori i Øving-fanen'}</Text>
               </View>
             </TouchableOpacity>
+
+            {/* Snarveier: Flashcards og Feilbank */}
+            <View style={styles.shortcutRow}>
+              <TouchableOpacity style={styles.shortcutCard} onPress={() => router.push('/flashcards')} activeOpacity={0.85}>
+                <Text style={styles.shortcutIcon}>🃏</Text>
+                <Text style={styles.shortcutTitle}>Flashcards</Text>
+                <Text style={styles.shortcutSub}>Øv med kort</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shortcutCard} onPress={() => router.push('/feilbank')} activeOpacity={0.85}>
+                <Text style={styles.shortcutIcon}>❌</Text>
+                <Text style={styles.shortcutTitle}>Feilbank</Text>
+                <Text style={styles.shortcutSub}>Feil du har gjort</Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Anbefalt */}
             {størsteFeilbankKat && (
@@ -230,9 +297,8 @@ const KatRow = memo(function KatRow({ kat, accent }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0f0f1a' },
-  scroll: { padding: 20, paddingBottom: 40 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  greeting: { fontSize: 22, fontWeight: '900', color: '#fff' },
+  greeting: { fontWeight: '900', color: '#fff' },
   sub: { fontSize: 13, color: '#8b9ab5', marginTop: 2 },
   iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.07)', justifyContent: 'center', alignItems: 'center' },
   iconBtnText: { color: '#8b9ab5', fontSize: 18 },
@@ -304,4 +370,18 @@ const styles = StyleSheet.create({
 
   emptyBox: { padding: 20, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', marginTop: 8 },
   emptyText: { color: '#8b9ab5', fontSize: 13, textAlign: 'center', lineHeight: 18 },
+
+  shortcutRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  shortcutCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 14,
+    paddingVertical: 18,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  shortcutIcon: { fontSize: 28, marginBottom: 8 },
+  shortcutTitle: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  shortcutSub: { color: '#8b9ab5', fontSize: 11, marginTop: 3 },
 });
