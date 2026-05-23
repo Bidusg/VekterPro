@@ -31,12 +31,16 @@ export default function FeilbankScreen() {
       if (!userId) return;
       let alive = true;
       setLoading(true);
-      hentFeilbank(userId).then((data) => {
-        if (alive) {
-          setEntries(data);
-          setLoading(false);
-        }
-      });
+      hentFeilbank(userId)
+        .then((data) => {
+          if (alive) {
+            setEntries(data);
+            setLoading(false);
+          }
+        })
+        .catch(() => {
+          if (alive) setLoading(false);
+        });
       return () => { alive = false; };
     }, [userId])
   );

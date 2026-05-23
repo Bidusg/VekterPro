@@ -20,6 +20,7 @@ import { registrerSvar, registrerEksamensforsok } from '../services/statistikk';
 import { registrerAktivitet } from '../services/streak';
 import { settSistKategori } from '../services/laeringsfremgang';
 import { fullførDagligUtfordring } from '../services/dailyChallenge';
+import { clearAllCaches } from '../services/tabCache';
 import { useState, useEffect, useRef } from 'react';
 
 const { width } = Dimensions.get('window');
@@ -189,6 +190,7 @@ export default function QuizScreen() {
     buildQuestions();
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      clearAllCaches();
     };
   }, []);
 
