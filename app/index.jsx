@@ -73,16 +73,24 @@ export default function LandingScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[StyleSheet.absoluteFillObject, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#6C63FF" />
       </View>
     );
   }
 
   return (
-    <View style={styles.safe}>
+    <View style={StyleSheet.absoluteFillObject}>
       <StatusBar style="light" backgroundColor="transparent" translucent={true} />
-      <LinearGradient colors={['#1a1a2e', '#16213e', '#0f0f1a']} style={[styles.container, { paddingBottom: insets.bottom + 12 }]}>
+
+      {/* Gradient fyller absolutt hele skjermen, inkludert bak statusbar */}
+      <LinearGradient
+        colors={['#1a1a2e', '#16213e', '#0f0f1a']}
+        style={StyleSheet.absoluteFillObject}
+      />
+
+      {/* Innhold: paddingTop skyver alt ned under statusbar */}
+      <View style={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom + 12 }]}>
 
         {/* Hero */}
         <FadeSlide delay={0} fromY={-16} style={styles.heroSection}>
@@ -154,7 +162,7 @@ export default function LandingScreen() {
           <Text style={styles.disclaimer}>Engangsbetaling · Ingen abonnement · Sikker betaling</Text>
         </FadeSlide>
 
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -162,13 +170,11 @@ export default function LandingScreen() {
 const CARD_W = (width - 52) / 2;
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#1a1a2e' },
   loadingContainer: { flex: 1, backgroundColor: '#0f0f1a', justifyContent: 'center', alignItems: 'center' },
 
-  container: {
+  content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 0,
     justifyContent: 'space-between',
   },
 

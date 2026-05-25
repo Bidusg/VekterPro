@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "VekterEksamen",
-    "slug": "vektereksamen",
+    "slug": "vekterpro",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
