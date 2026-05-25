@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { AntDesign } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { useState, useEffect } from 'react';
@@ -135,7 +135,8 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
+      <StatusBar style="light" backgroundColor="#0f0f1a" translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.container}>
@@ -203,7 +204,7 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

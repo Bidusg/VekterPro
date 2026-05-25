@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
 import { registrer } from '../services/auth';
 import { oversettAuthFeil, SocialButtons } from './login';
@@ -81,7 +81,8 @@ export default function SignupScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
+      <StatusBar style="light" backgroundColor="#0f0f1a" translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.container}>
@@ -186,7 +187,7 @@ export default function SignupScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

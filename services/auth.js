@@ -4,6 +4,7 @@ import {
   signOut,
   updateProfile,
   onAuthStateChanged,
+  sendEmailVerification,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -16,6 +17,9 @@ export async function registrer(epost, passord, navn) {
     epost,
     opprettet: serverTimestamp(),
   });
+  try {
+    await sendEmailVerification(cred.user);
+  } catch (_) {}
   return cred.user;
 }
 

@@ -2,8 +2,8 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  InteractionManager,
+  FlatList,
+  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
@@ -18,8 +18,6 @@ import {
   hentTotalAntallSvar,
 } from '../../services/statistikk';
 import { hentStreak } from '../../services/streak';
-import { statCache } from '../../services/tabCache';
-import SkeletonBox from '../../components/SkeletonBox';
 
 const chartConfig = {
   backgroundGradientFrom: '#1a1a2e',
@@ -31,33 +29,13 @@ const chartConfig = {
   propsForBackgroundLines: { stroke: 'rgba(255,255,255,0.05)' },
 };
 
-function StatSkeleton({ boxWidth }) {
-  return (
-    <View style={skStyles.wrap}>
-      <SkeletonBox width={140} height={28} borderRadius={8} style={skStyles.mb6} />
-      <SkeletonBox width={180} height={14} borderRadius={6} style={skStyles.mb20} />
-      <View style={skStyles.grid}>
-        <SkeletonBox width={boxWidth} height={76} borderRadius={14} />
-        <SkeletonBox width={boxWidth} height={76} borderRadius={14} />
-        <SkeletonBox width={boxWidth} height={76} borderRadius={14} />
-        <SkeletonBox width={boxWidth} height={76} borderRadius={14} />
-      </View>
-      <SkeletonBox width={120} height={17} borderRadius={6} style={skStyles.mb10} />
-      <SkeletonBox height={200} borderRadius={14} style={skStyles.mb16} />
-      <SkeletonBox width={120} height={17} borderRadius={6} style={skStyles.mb10} />
-      <SkeletonBox height={220} borderRadius={14} style={skStyles.mb16} />
-    </View>
-  );
-}
-
-const skStyles = StyleSheet.create({
-  wrap: { paddingTop: 4 },
-  mb6: { marginBottom: 6 },
-  mb10: { marginBottom: 10 },
-  mb16: { marginBottom: 16 },
-  mb20: { marginBottom: 20, },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-});
+const EMPTY_DATA = {
+  dager: [],
+  kat: [],
+  eks: { antall: 0, bestattPct: 0 },
+  total: 0,
+  streak: { current: 0, longest: 0 },
+};
 
 export default function StatistikkTab() {
   const { userId } = useAppStore();
@@ -70,37 +48,28 @@ export default function StatistikkTab() {
   const chartW = width - padding * 2;
   const boxWidth = (width - padding * 2 - 10) / 2;
 
-  const initData = statCache.data;
-  const [loading, setLoading] = useState(!initData);
-  const [data, setData] = useState(
-    initData || { dager: [], kat: [], eks: { antall: 0, bestattPct: 0 }, total: 0, streak: { current: 0, longest: 0 } }
-  );
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(EMPTY_DATA);
 
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
       let alive = true;
-      const task = InteractionManager.runAfterInteractions(() => {
-        if (!statCache.data) setLoading(true);
-        Promise.all([
-          hentDagligStat(userId, 14),
-          hentKategoriStat(userId),
-          hentEksamensforsok(userId),
-          hentTotalAntallSvar(userId),
-          hentStreak(userId),
-        ]).then(([dager, kat, eks, total, streak]) => {
-          if (!alive) return;
-          statCache.data = { dager, kat, eks, total, streak };
-          setData({ dager, kat, eks, total, streak });
-          setLoading(false);
-        }).catch(() => {
-          if (alive) setLoading(false);
-        });
+      setLoading(true);
+      Promise.all([
+        hentDagligStat(userId, 14),
+        hentKategoriStat(userId),
+        hentEksamensforsok(userId),
+        hentTotalAntallSvar(userId),
+        hentStreak(userId),
+      ]).then(([dager, kat, eks, total, streak]) => {
+        if (!alive) return;
+        setData({ dager, kat, eks, total, streak });
+        setLoading(false);
+      }).catch(() => {
+        if (alive) setLoading(false);
       });
-      return () => {
-        alive = false;
-        task.cancel();
-      };
+      return () => { alive = false; };
     }, [userId])
   );
 
@@ -125,15 +94,18 @@ export default function StatistikkTab() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView
+      <FlatList
+        data={sortedKat}
+        keyExtractor={(k) => k.kategori}
         contentContainerStyle={{ paddingHorizontal: padding, paddingTop: padding, paddingBottom: scrollPb }}
         showsVerticalScrollIndicator={false}
-      >
-        {loading ? (
-          <StatSkeleton boxWidth={boxWidth} />
-        ) : (
+        ListHeaderComponent={() => (
           <>
-            <Text style={styles.title}>📊 Statistikk</Text>
+            {/* Tittel med spinner */}
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>📊 Statistikk</Text>
+              {loading && <ActivityIndicator size="small" color="#6C63FF" />}
+            </View>
             <Text style={styles.sub}>Din fremgang over tid</Text>
 
             {/* Tall-rad */}
@@ -158,7 +130,9 @@ export default function StatistikkTab() {
                 fromZero
               />
             ) : (
-              <View style={styles.emptyChart}><Text style={styles.emptyText}>Svar på noen spørsmål for å se grafen</Text></View>
+              <View style={styles.emptyChart}>
+                <Text style={styles.emptyText}>Svar på noen spørsmål for å se grafen</Text>
+              </View>
             )}
 
             {/* Bar-chart */}
@@ -175,27 +149,29 @@ export default function StatistikkTab() {
                 verticalLabelRotation={30}
               />
             ) : (
-              <View style={styles.emptyChart}><Text style={styles.emptyText}>Ingen kategoridata enda</Text></View>
+              <View style={styles.emptyChart}>
+                <Text style={styles.emptyText}>Ingen kategoridata enda</Text>
+              </View>
             )}
 
-            {/* Kategori-liste */}
-            {data.kat.length > 0 && (
-              <>
-                <Text style={styles.chartTitle}>Alle kategorier</Text>
-                {sortedKat.map((k) => (
-                  <View key={k.kategori} style={styles.katRow}>
-                    <Text style={styles.katName}>{k.kategori}</Text>
-                    <View style={styles.katBarBg}>
-                      <View style={[styles.katBarFill, { width: `${k.score}%`, backgroundColor: k.score >= 75 ? '#2ECC71' : k.score >= 50 ? '#F39C12' : '#E74C3C' }]} />
-                    </View>
-                    <Text style={styles.katScore}>{k.score}%</Text>
-                  </View>
-                ))}
-              </>
+            {sortedKat.length > 0 && (
+              <Text style={styles.chartTitle}>Alle kategorier</Text>
             )}
           </>
         )}
-      </ScrollView>
+        renderItem={({ item: k }) => (
+          <View style={styles.katRow}>
+            <Text style={styles.katName}>{k.kategori}</Text>
+            <View style={styles.katBarBg}>
+              <View style={[styles.katBarFill, {
+                width: `${k.score}%`,
+                backgroundColor: k.score >= 75 ? '#2ECC71' : k.score >= 50 ? '#F39C12' : '#E74C3C',
+              }]} />
+            </View>
+            <Text style={styles.katScore}>{k.score}%</Text>
+          </View>
+        )}
+      />
     </SafeAreaView>
   );
 }
@@ -212,6 +188,8 @@ const StatBox = memo(function StatBox({ icon, num, lbl, color = '#6C63FF', boxWi
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0f0f1a' },
+
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
   title: { fontSize: 26, fontWeight: '900', color: '#fff' },
   sub: { fontSize: 13, color: '#8b9ab5', marginBottom: 20 },
 

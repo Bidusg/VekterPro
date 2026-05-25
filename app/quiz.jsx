@@ -271,6 +271,7 @@ export default function QuizScreen() {
         if (riktig) {
           registrerRiktigSvar(userId, q);
         } else {
+          console.log('[quiz] feil svar → feilbank:', userId, q.id, q.q?.slice(0, 50));
           registrerFeilSvar(userId, q);
         }
         loggSvarStat(q, riktig);
@@ -310,6 +311,7 @@ export default function QuizScreen() {
             }
           });
         } else {
+          console.log('[quiz] feil svar → feilbank:', userId, q.id, q.q?.slice(0, 50));
           registrerFeilSvar(userId, q);
         }
       }

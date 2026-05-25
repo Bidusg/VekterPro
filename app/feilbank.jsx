@@ -3,7 +3,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
+  FlatList,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -18,14 +18,44 @@ function findModulForKategori(kategori) {
   return MODULES.find((m) => m.kategorier.includes(kategori));
 }
 
+function KatCard({ kat, items, onØv }) {
+  const mod = findModulForKategori(kat);
+  return (
+    <View style={styles.katCard}>
+      <View style={styles.katHeader}>
+        <View style={styles.katHeaderLeft}>
+          <Text style={styles.katIcon}>{mod?.icon ?? '📚'}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.katName}>{kat}</Text>
+            <Text style={styles.katMeta}>{items.length} spørsmål</Text>
+          </View>
+        </View>
+        <TouchableOpacity style={styles.katBtn} onPress={onØv}>
+          <Text style={styles.katBtnText}>Øv</Text>
+        </TouchableOpacity>
+      </View>
+
+      {items.map((e) => (
+        <View key={e.id} style={styles.qRow}>
+          <Text style={styles.qText} numberOfLines={2}>{e.spørsmål}</Text>
+          <View style={styles.qStats}>
+            <Text style={styles.qFeil}>✗ {e.antallFeil}</Text>
+            {e.riktigPåRad > 0 && (
+              <Text style={styles.qStreak}>🔥 {e.riktigPåRad}/3</Text>
+            )}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function FeilbankScreen() {
   const router = useRouter();
   const { userId } = useStore();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState([]);
 
-  // Last feilbanken på nytt hver gang skjermen får fokus,
-  // slik at fjernede spørsmål forsvinner umiddelbart.
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
@@ -33,14 +63,9 @@ export default function FeilbankScreen() {
       setLoading(true);
       hentFeilbank(userId)
         .then((data) => {
-          if (alive) {
-            setEntries(data);
-            setLoading(false);
-          }
+          if (alive) { setEntries(data); setLoading(false); }
         })
-        .catch(() => {
-          if (alive) setLoading(false);
-        });
+        .catch(() => { if (alive) setLoading(false); });
       return () => { alive = false; };
     }, [userId])
   );
@@ -56,18 +81,16 @@ export default function FeilbankScreen() {
 
   function øvAlle() {
     if (entries.length === 0) return;
-    const ids = entries.map((e) => e.id).join(',');
-    router.push({ pathname: '/quiz', params: { mode: 'practice', feilbankIds: ids } });
+    router.push({ pathname: '/quiz', params: { mode: 'practice', feilbankIds: entries.map((e) => e.id).join(',') } });
   }
 
   function øvKategori(kat) {
-    const ids = grupper[kat].map((e) => e.id).join(',');
-    router.push({ pathname: '/quiz', params: { mode: 'practice', feilbankIds: ids } });
+    router.push({ pathname: '/quiz', params: { mode: 'practice', feilbankIds: grupper[kat].map((e) => e.id).join(',') } });
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
+      {/* Fast header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backBtnText}>←</Text>
@@ -77,21 +100,43 @@ export default function FeilbankScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator color="#6C63FF" />
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color="#6C63FF" size="large" />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Stats hero */}
-          <LinearGradient colors={['#3a1a1a', '#1f0f0f']} style={styles.hero}>
-            <Text style={styles.heroNum}>{entries.length}</Text>
-            <Text style={styles.heroLabel}>spørsmål du må jobbe med</Text>
-            <Text style={styles.heroSub}>
-              Svar riktig 3 ganger på rad for å fjerne et spørsmål fra feilbanken
-            </Text>
-          </LinearGradient>
+        <FlatList
+          data={kategorier}
+          keyExtractor={(kat) => kat}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={() => (
+            <>
+              <LinearGradient colors={['#3a1a1a', '#1f0f0f']} style={styles.hero}>
+                <Text style={styles.heroNum}>{entries.length}</Text>
+                <Text style={styles.heroLabel}>spørsmål du må jobbe med</Text>
+                <Text style={styles.heroSub}>
+                  Svar riktig 3 ganger på rad for å fjerne et spørsmål fra feilbanken
+                </Text>
+              </LinearGradient>
 
-          {entries.length === 0 ? (
+              {entries.length > 0 && (
+                <>
+                  <TouchableOpacity style={styles.bigBtn} onPress={øvAlle} activeOpacity={0.85}>
+                    <LinearGradient
+                      colors={['#6C63FF', '#4ECDC4']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.bigBtnGradient}
+                    >
+                      <Text style={styles.bigBtnText}>Øv på alle ({entries.length})</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                  <Text style={styles.sectionTitle}>Per kategori</Text>
+                </>
+              )}
+            </>
+          )}
+          ListEmptyComponent={() => (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyIcon}>🎉</Text>
               <Text style={styles.emptyTitle}>Tom feilbank!</Text>
@@ -99,56 +144,15 @@ export default function FeilbankScreen() {
                 Du har ingen feil spørsmål akkurat nå. Når du svarer feil i quiz eller eksamen, dukker spørsmålene opp her.
               </Text>
             </View>
-          ) : (
-            <>
-              <TouchableOpacity style={styles.bigBtn} onPress={øvAlle} activeOpacity={0.85}>
-                <LinearGradient
-                  colors={['#6C63FF', '#4ECDC4']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.bigBtnGradient}
-                >
-                  <Text style={styles.bigBtnText}>Øv på alle ({entries.length})</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <Text style={styles.sectionTitle}>Per kategori</Text>
-
-              {kategorier.map((kat) => {
-                const mod = findModulForKategori(kat);
-                const items = grupper[kat];
-                return (
-                  <View key={kat} style={styles.katCard}>
-                    <View style={styles.katHeader}>
-                      <View style={styles.katHeaderLeft}>
-                        <Text style={styles.katIcon}>{mod?.icon ?? '📚'}</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.katName}>{kat}</Text>
-                          <Text style={styles.katMeta}>{items.length} spørsmål</Text>
-                        </View>
-                      </View>
-                      <TouchableOpacity style={styles.katBtn} onPress={() => øvKategori(kat)}>
-                        <Text style={styles.katBtnText}>Øv</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {items.map((e) => (
-                      <View key={e.id} style={styles.qRow}>
-                        <Text style={styles.qText} numberOfLines={2}>{e.spørsmål}</Text>
-                        <View style={styles.qStats}>
-                          <Text style={styles.qFeil}>✗ {e.antallFeil}</Text>
-                          {e.riktigPåRad > 0 && (
-                            <Text style={styles.qStreak}>🔥 {e.riktigPåRad}/3</Text>
-                          )}
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                );
-              })}
-            </>
           )}
-        </ScrollView>
+          renderItem={({ item: kat }) => (
+            <KatCard
+              kat={kat}
+              items={grupper[kat]}
+              onØv={() => øvKategori(kat)}
+            />
+          )}
+        />
       )}
     </SafeAreaView>
   );
@@ -171,7 +175,7 @@ const styles = StyleSheet.create({
   },
   backBtnText: { color: '#fff', fontSize: 18 },
   title: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 20, paddingBottom: 40 },
 
   hero: {
@@ -235,12 +239,7 @@ const styles = StyleSheet.create({
   },
   katBtnText: { color: '#6C63FF', fontSize: 12, fontWeight: '700' },
 
-  qRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    gap: 12,
-  },
+  qRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 12 },
   qText: { flex: 1, fontSize: 12, color: '#c8d0e0', lineHeight: 17 },
   qStats: { alignItems: 'flex-end', gap: 2 },
   qFeil: { fontSize: 11, color: '#E74C3C', fontWeight: '700' },

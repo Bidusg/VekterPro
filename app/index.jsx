@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAppStore as useStore } from '../store/StoreContext';
 import { useRef, useEffect } from 'react';
@@ -69,7 +69,8 @@ export default function LandingScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
+      <StatusBar style="light" backgroundColor="#1a1a2e" translucent={false} />
       <LinearGradient colors={['#1a1a2e', '#16213e', '#0f0f1a']} style={styles.container}>
 
         {/* Hero */}
@@ -138,7 +139,7 @@ export default function LandingScreen() {
         </FadeSlide>
 
       </LinearGradient>
-    </SafeAreaView>
+    </View>
   );
 }
 
