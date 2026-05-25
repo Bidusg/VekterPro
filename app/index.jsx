@@ -3,227 +3,189 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
-  ActivityIndicator,
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useAppStore as useStore } from '../store/StoreContext';
 import { useRef, useEffect, useCallback } from 'react';
-
-const { width } = Dimensions.get('window');
-
-const FEATURES = [
-  { icon: 'quiz',         text: '389 spørsmål' },
-  { icon: 'menu-book',    text: 'Eksamensmodus' },
-  { icon: 'flash-on',     text: 'Flashcards' },
-  { icon: 'bar-chart',    text: 'Fremgang' },
-  { icon: 'group',        text: 'Øvingsmodus' },
-  { icon: 'emoji-events', text: 'Bestått/ikke bestått' },
-];
-
-function useEntrance(delay = 0) {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.spring(anim, {
-      toValue: 1,
-      delay,
-      useNativeDriver: true,
-      friction: 14,
-      tension: 120,
-    }).start();
-  }, []);
-  return anim;
-}
-
-function FadeSlide({ delay = 0, fromY = 20, children, style }) {
-  const anim = useEntrance(delay);
-  return (
-    <Animated.View
-      style={[
-        style,
-        {
-          opacity: anim,
-          transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [fromY, 0] }) }],
-        },
-      ]}
-    >
-      {children}
-    </Animated.View>
-  );
-}
+import { useAppStore as useStore } from '../store/StoreContext';
 
 function useSpringPress() {
   const scale = useRef(new Animated.Value(1)).current;
-  const onPressIn = useCallback(() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start(), []);
-  const onPressOut = useCallback(() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start(), []);
+  const onPressIn = useCallback(
+    () => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start(),
+    []
+  );
+  const onPressOut = useCallback(
+    () => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start(),
+    []
+  );
   return { scale, onPressIn, onPressOut };
 }
 
 export default function LandingScreen() {
   const router = useRouter();
   const { loading } = useStore();
+  const insets = useSafeAreaInsets();
   const registerSpring = useSpringPress();
   const loginSpring = useSpringPress();
-  const insets = useSafeAreaInsets();
 
-  if (loading) {
-    return (
-      <View style={[StyleSheet.absoluteFillObject, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#6C63FF" />
-      </View>
-    );
-  }
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+  }, []);
 
   return (
-    <View style={StyleSheet.absoluteFillObject}>
-      <StatusBar style="light" backgroundColor="transparent" translucent={true} />
+    <View style={styles.root}>
+      <StatusBar style="light" translucent={true} backgroundColor="#0d1b3e" />
 
-      {/* Gradient fyller absolutt hele skjermen, inkludert bak statusbar */}
-      <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f0f1a']}
-        style={StyleSheet.absoluteFillObject}
-      />
-
-      {/* Innhold: paddingTop skyver alt ned under statusbar */}
-      <View style={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom + 12 }]}>
-
-        {/* Hero */}
-        <FadeSlide delay={0} fromY={-16} style={styles.heroSection}>
-          <Text style={styles.heroTitle}>VekterEksamen</Text>
-          <Text style={styles.heroSubtitle}>Bestå vektereksamen på første forsøk</Text>
-        </FadeSlide>
+      <Animated.View
+        style={[
+          styles.inner,
+          {
+            paddingTop: insets.top + 32,
+            paddingBottom: insets.bottom + 24,
+            opacity: fadeAnim,
+          },
+        ]}
+      >
+        {/* Logo */}
+        <View style={styles.logoSection}>
+          <View style={styles.logoMark}>
+            <Text style={styles.logoEmoji}>👮</Text>
+          </View>
+          <Text style={styles.appName}>VekterEksamen</Text>
+          <Text style={styles.tagline}>Bestå vektereksamen på første forsøk</Text>
+        </View>
 
         {/* Stats */}
-        <FadeSlide delay={150} fromY={16} style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>333</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNum}>633</Text>
             <Text style={styles.statLabel}>Spørsmål</Text>
           </View>
           <View style={styles.statDivider} />
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>19</Text>
-            <Text style={styles.statLabel}>Kategorier</Text>
+          <View style={styles.statItem}>
+            <Text style={styles.statNum}>15</Text>
+            <Text style={styles.statLabel}>Kapitler</Text>
           </View>
           <View style={styles.statDivider} />
-          <View style={styles.statBox}>
+          <View style={styles.statItem}>
             <Text style={styles.statNum}>75%</Text>
             <Text style={styles.statLabel}>Grense</Text>
           </View>
-        </FadeSlide>
-
-        {/* Features */}
-        <FadeSlide delay={300} fromY={16} style={styles.featureGrid}>
-          {FEATURES.map((f, i) => (
-            <View key={i} style={styles.featureCard}>
-              <MaterialIcons name={f.icon} size={20} color="#6C63FF" />
-              <Text style={styles.featureText}>{f.text}</Text>
-            </View>
-          ))}
-        </FadeSlide>
+        </View>
 
         {/* CTA */}
-        <FadeSlide delay={450} fromY={20} style={styles.ctaSection}>
+        <View style={styles.ctaSection}>
           <Animated.View style={{ transform: [{ scale: registerSpring.scale }] }}>
             <TouchableOpacity
-              style={styles.registerButton}
+              style={styles.registerBtn}
               onPress={() => router.push('/signup')}
               activeOpacity={1}
               onPressIn={registerSpring.onPressIn}
               onPressOut={registerSpring.onPressOut}
             >
-              <LinearGradient
-                colors={['#6C63FF', '#4ECDC4']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.ctaGradient}
-              >
-                <Text style={styles.registerText}>Registrer deg</Text>
-              </LinearGradient>
+              <Text style={styles.registerBtnText}>Registrer deg</Text>
             </TouchableOpacity>
           </Animated.View>
 
           <Animated.View style={{ transform: [{ scale: loginSpring.scale }] }}>
             <TouchableOpacity
-              style={styles.loginButton}
+              style={styles.loginBtn}
               onPress={() => router.push('/login')}
               activeOpacity={1}
               onPressIn={loginSpring.onPressIn}
               onPressOut={loginSpring.onPressOut}
             >
-              <Text style={styles.loginText}>Logg inn</Text>
+              <Text style={styles.loginBtnText}>Logg inn</Text>
             </TouchableOpacity>
           </Animated.View>
 
-          <Text style={styles.disclaimer}>Engangsbetaling · Ingen abonnement · Sikker betaling</Text>
-        </FadeSlide>
-
-      </View>
+          <Text style={styles.disclaimer}>
+            Engangsbetaling · Ingen abonnement · Sikker betaling
+          </Text>
+        </View>
+      </Animated.View>
     </View>
   );
 }
 
-const CARD_W = (width - 52) / 2;
-
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, backgroundColor: '#0f0f1a', justifyContent: 'center', alignItems: 'center' },
-
-  content: {
+  root: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0d1b3e',
+  },
+  inner: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 28,
     justifyContent: 'space-between',
   },
 
-  heroSection: { alignItems: 'center' },
-  heroTitle: { fontSize: 42, fontWeight: '900', color: '#ffffff', letterSpacing: -1, marginBottom: 4 },
-  heroSubtitle: { fontSize: 14, color: '#8b9ab5', textAlign: 'center', lineHeight: 20 },
+  logoSection: {
+    alignItems: 'center',
+  },
+  logoMark: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: 'rgba(212,175,55,0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(212,175,55,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logoEmoji: { fontSize: 36 },
+  appName: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  tagline: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
 
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.2)',
+    backgroundColor: 'rgba(212,175,55,0.05)',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statNum: { fontSize: 24, fontWeight: '900', color: '#D4AF37', letterSpacing: -0.5 },
+  statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 3, fontWeight: '600' },
+  statDivider: { width: 1, backgroundColor: 'rgba(212,175,55,0.2)', marginHorizontal: 8 },
+
+  ctaSection: { gap: 12 },
+  registerBtn: {
+    backgroundColor: '#D4AF37',
     borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  statBox: { flex: 1, alignItems: 'center' },
-  statNum: { fontSize: 20, fontWeight: '800', color: '#6C63FF' },
-  statLabel: { fontSize: 11, color: '#8b9ab5', marginTop: 1 },
-  statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: 6 },
-
-  featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  featureCard: {
-    width: CARD_W,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    flexDirection: 'row',
+    paddingVertical: 17,
     alignItems: 'center',
-    gap: 8,
   },
-  featureText: { fontSize: 12, color: '#c8d0e0', flex: 1, lineHeight: 16 },
-
-  ctaSection: {},
-  registerButton: { width: '100%', borderRadius: 14, overflow: 'hidden', marginBottom: 10 },
-  ctaGradient: { paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
-  registerText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
-  loginButton: {
-    width: '100%',
+  registerBtnText: { color: '#0d1b3e', fontSize: 17, fontWeight: '900', letterSpacing: 0.2 },
+  loginBtn: {
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: 'rgba(108,99,255,0.5)',
-    paddingVertical: 14,
+    borderColor: 'rgba(212,175,55,0.5)',
+    paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 12,
   },
-  loginText: { color: '#6C63FF', fontSize: 16, fontWeight: '700' },
-  disclaimer: { fontSize: 11, color: '#4a4a6a', textAlign: 'center' },
+  loginBtnText: { color: '#D4AF37', fontSize: 17, fontWeight: '700' },
+  disclaimer: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.3)',
+    textAlign: 'center',
+    paddingTop: 4,
+  },
 });
