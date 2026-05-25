@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { useAppStore } from '../store/StoreContext';
 
@@ -39,10 +40,49 @@ const PLANS = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: 'apple', label: 'Apple Pay', icon: '' },
-  { id: 'google', label: 'Google Pay', icon: 'G' },
-  { id: 'card', label: 'Kort', icon: '💳' },
+  {
+    id: 'apple',
+    label: 'Apple Pay',
+    sublabel: 'Betal med Face ID eller Touch ID',
+    bg: '#000000',
+    bgSelected: '#111111',
+    textColor: '#ffffff',
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderColorSelected: 'rgba(255,255,255,0.45)',
+  },
+  {
+    id: 'vipps',
+    label: 'Vipps',
+    sublabel: 'Betal raskt og enkelt med Vipps',
+    bg: '#FF5B24',
+    bgSelected: '#e84e1a',
+    textColor: '#ffffff',
+    borderColor: 'transparent',
+    borderColorSelected: '#ffffff',
+  },
+  {
+    id: 'card',
+    label: 'Kortbetaling',
+    sublabel: 'Visa, Mastercard og andre kort',
+    bg: '#0d1b3e',
+    bgSelected: '#0d1b3e',
+    textColor: '#D4AF37',
+    borderColor: '#D4AF37',
+    borderColorSelected: '#f0cc55',
+  },
 ];
+
+function ApplePayIcon({ size = 22, color = '#fff' }) {
+  return <Text style={{ fontSize: size, color, lineHeight: size + 4 }}></Text>;
+}
+
+function VippsIcon({ size = 22 }) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ fontSize: size * 0.55, lineHeight: size * 0.7 }}>🟠</Text>
+    </View>
+  );
+}
 
 export default function BetalingScreen() {
   const router = useRouter();
@@ -94,13 +134,16 @@ export default function BetalingScreen() {
     }
   }
 
+  const activePlan = PLANS.find((p) => p.id === selectedPlan);
+  const activeMethod = PAYMENT_METHODS.find((m) => m.id === paymentMethod);
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logoText}>VekterPro</Text>
+          <Text style={styles.logoText}>VekterEksamen</Text>
           <Text style={styles.heading}>Velg din tilgang</Text>
           <Text style={styles.subtitle}>Engangsbetaling – ingen abonnement</Text>
         </View>
@@ -142,20 +185,59 @@ export default function BetalingScreen() {
         {/* Payment method */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Betalingsmetode</Text>
-          <View style={styles.methodRow}>
-            {PAYMENT_METHODS.map((m) => (
-              <TouchableOpacity
-                key={m.id}
-                style={[styles.methodBtn, paymentMethod === m.id && styles.methodBtnSelected]}
-                onPress={() => setPaymentMethod(m.id)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.methodIcon}>{m.icon}</Text>
-                <Text style={[styles.methodLabel, paymentMethod === m.id && styles.methodLabelSelected]}>
-                  {m.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.methodList}>
+            {PAYMENT_METHODS.map((m) => {
+              const selected = paymentMethod === m.id;
+              return (
+                <TouchableOpacity
+                  key={m.id}
+                  style={[
+                    styles.methodTile,
+                    {
+                      backgroundColor: selected ? m.bgSelected : m.bg,
+                      borderColor: selected ? m.borderColorSelected : m.borderColor,
+                    },
+                  ]}
+                  onPress={() => setPaymentMethod(m.id)}
+                  activeOpacity={0.82}
+                >
+                  {/* Left: icon + text */}
+                  <View style={styles.methodTileLeft}>
+                    {m.id === 'apple' && (
+                      <View style={styles.methodIconWrap}>
+                        <ApplePayIcon size={24} color="#fff" />
+                      </View>
+                    )}
+                    {m.id === 'vipps' && (
+                      <View style={[styles.methodIconWrap, { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 10 }]}>
+                        <Text style={{ fontSize: 20, lineHeight: 24 }}>🟠</Text>
+                      </View>
+                    )}
+                    {m.id === 'card' && (
+                      <View style={[styles.methodIconWrap, { backgroundColor: 'rgba(212,175,55,0.15)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' }]}>
+                        <MaterialIcons name="credit-card" size={22} color="#D4AF37" />
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.methodTileLabel, { color: m.textColor }]}>{m.label}</Text>
+                      <Text style={[styles.methodTileSub, { color: m.id === 'card' ? 'rgba(212,175,55,0.7)' : 'rgba(255,255,255,0.6)' }]}>
+                        {m.sublabel}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Right: checkmark or circle */}
+                  <View style={[
+                    styles.methodCheck,
+                    selected && { backgroundColor: m.id === 'card' ? '#D4AF37' : '#fff', borderColor: 'transparent' },
+                  ]}>
+                    {selected && (
+                      <Text style={{ color: m.id === 'card' ? '#0d1b3e' : m.bg, fontSize: 12, fontWeight: '900' }}>✓</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -205,15 +287,22 @@ export default function BetalingScreen() {
           </View>
         )}
 
-        {/* Apple Pay / Google Pay message */}
-        {(paymentMethod === 'apple' || paymentMethod === 'google') && (
+        {/* Apple Pay / Vipps info */}
+        {(paymentMethod === 'apple' || paymentMethod === 'vipps') && (
           <View style={styles.section}>
-            <View style={styles.walletInfo}>
+            <View style={[
+              styles.walletInfo,
+              paymentMethod === 'apple'
+                ? { backgroundColor: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.1)' }
+                : { backgroundColor: 'rgba(255,91,36,0.12)', borderColor: 'rgba(255,91,36,0.3)' },
+            ]}>
               <Text style={styles.walletIcon}>
-                {paymentMethod === 'apple' ? '' : 'G'}
+                {paymentMethod === 'apple' ? '' : '🟠'}
               </Text>
               <Text style={styles.walletText}>
-                Du vil bli sendt til {paymentMethod === 'apple' ? 'Apple Pay' : 'Google Pay'} for å fullføre betalingen.
+                {paymentMethod === 'apple'
+                  ? 'Du vil bli bedt om å bekrefte med Face ID eller Touch ID for å fullføre betalingen.'
+                  : 'Du vil bli sendt til Vipps-appen for å godkjenne betalingen.'}
               </Text>
             </View>
           </View>
@@ -237,7 +326,7 @@ export default function BetalingScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.ctaText}>
-                  Betal {PLANS.find((p) => p.id === selectedPlan)?.price} →
+                  Betal {activePlan?.price} med {activeMethod?.label} →
                 </Text>
               )}
             </LinearGradient>
@@ -312,23 +401,34 @@ const styles = StyleSheet.create({
   planRadioSelected: { borderColor: '#6C63FF' },
   planRadioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#6C63FF' },
 
-  methodRow: { flexDirection: 'row', gap: 10 },
-  methodBtn: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    paddingVertical: 14,
+  methodList: { gap: 10 },
+  methodTile: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
-  methodBtnSelected: {
-    borderColor: '#6C63FF',
-    backgroundColor: 'rgba(108,99,255,0.1)',
+  methodTileLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
+  methodIconWrap: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  methodIcon: { fontSize: 20, marginBottom: 4 },
-  methodLabel: { fontSize: 12, fontWeight: '600', color: '#8b9ab5' },
-  methodLabelSelected: { color: '#6C63FF' },
+  methodTileLabel: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2, marginBottom: 2 },
+  methodTileSub: { fontSize: 11, fontWeight: '500' },
+  methodCheck: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
   label: { fontSize: 13, fontWeight: '600', color: '#8b9ab5', marginBottom: 6, marginLeft: 2 },
   input: {
@@ -346,12 +446,10 @@ const styles = StyleSheet.create({
   cardField: { flex: 1 },
 
   walletInfo: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 14,
     padding: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
   walletIcon: { fontSize: 36, marginBottom: 10 },
   walletText: { fontSize: 14, color: '#8b9ab5', textAlign: 'center', lineHeight: 20 },
@@ -360,6 +458,6 @@ const styles = StyleSheet.create({
   ctaButton: { width: '100%', borderRadius: 16, overflow: 'hidden', marginBottom: 12 },
   ctaButtonDisabled: { opacity: 0.7 },
   ctaGradient: { paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
-  ctaText: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
+  ctaText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
   disclaimer: { fontSize: 11, color: '#4a4a6a', textAlign: 'center' },
 });

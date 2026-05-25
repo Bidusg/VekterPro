@@ -10,7 +10,7 @@ import { sjekkOgBeOmTillatelse, planleggDagligVarsel } from '../services/notific
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 if (__DEV__) {
-  console.log('--- VekterPro oppstart ---');
+  console.log('--- VekterEksamen oppstart ---');
   console.log('FIREBASE_API_KEY:', process.env.EXPO_PUBLIC_FIREBASE_WEB_API_KEY ? 'finnes' : 'MANGLER');
   console.log('FIREBASE_APP_ID:', process.env.EXPO_PUBLIC_FIREBASE_WEB_APP_ID ? 'finnes' : 'MANGLER');
   console.log('GOOGLE_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ? 'finnes' : 'MANGLER');

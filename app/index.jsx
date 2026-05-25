@@ -86,10 +86,7 @@ export default function LandingScreen() {
 
         {/* Hero */}
         <FadeSlide delay={0} fromY={-16} style={styles.heroSection}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>👮 NORSK VEKTEREKSAMEN</Text>
-          </View>
-          <Text style={styles.heroTitle}>VekterPro</Text>
+          <Text style={styles.heroTitle}>VekterEksamen</Text>
           <Text style={styles.heroSubtitle}>Bestå vektereksamen på første forsøk</Text>
         </FadeSlide>
 
@@ -165,7 +162,7 @@ export default function LandingScreen() {
 const CARD_W = (width - 52) / 2;
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0f0f1a' },
+  safe: { flex: 1, backgroundColor: '#1a1a2e' },
   loadingContainer: { flex: 1, backgroundColor: '#0f0f1a', justifyContent: 'center', alignItems: 'center' },
 
   container: {
@@ -176,16 +173,6 @@ const styles = StyleSheet.create({
   },
 
   heroSection: { alignItems: 'center' },
-  badge: {
-    backgroundColor: 'rgba(108,99,255,0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(108,99,255,0.4)',
-    marginBottom: 10,
-  },
-  badgeText: { color: '#a09dff', fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
   heroTitle: { fontSize: 42, fontWeight: '900', color: '#ffffff', letterSpacing: -1, marginBottom: 4 },
   heroSubtitle: { fontSize: 14, color: '#8b9ab5', textAlign: 'center', lineHeight: 20 },
 

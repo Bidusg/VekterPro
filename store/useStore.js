@@ -4,11 +4,11 @@ import { lyttPaaAuth, hentProfil, oppdaterBetaling } from '../services/auth';
 import { preloadHjem, preloadStat, clearAllCaches } from '../services/tabCache';
 
 const KEYS = {
-  PAYMENT: '@vekterpro_payment',
-  PROGRESS: '@vekterpro_progress',
-  SEEN_QUESTIONS: '@vekterpro_seen_questions',
-  FLASHCARD_STATE: '@vekterpro_flashcards',
-  USER_CACHE: '@vekterpro_user',
+  PAYMENT: '@vektereksamen_payment',
+  PROGRESS: '@vektereksamen_progress',
+  SEEN_QUESTIONS: '@vektereksamen_seen_questions',
+  FLASHCARD_STATE: '@vektereksamen_flashcards',
+  USER_CACHE: '@vektereksamen_user',
 };
 
 const defaultProgress = {};

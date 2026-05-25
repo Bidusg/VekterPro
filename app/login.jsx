@@ -150,7 +150,7 @@ export default function LoginScreen() {
               <View style={styles.logoIcon}>
                 <Text style={styles.logoEmoji}>👮</Text>
               </View>
-              <Text style={styles.logoText}>VekterPro</Text>
+              <Text style={styles.logoText}>VekterEksamen</Text>
             </View>
 
             <Text style={styles.heading}>Logg inn på kontoen din</Text>

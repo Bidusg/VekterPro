@@ -1,5 +1,5 @@
 // =============================================================
-// VEKTERPRO – LÆREBOK
+// VEKTEREKSAMEN – LÆREBOK
 // Nasjonal grunnutdanning for vektere (Politidirektoratet 2022)
 // Komplett referansemateriell for alle 15 moduler
 // Brukes til å generere forklaringer på riktige/gale svar
