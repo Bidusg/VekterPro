@@ -5,11 +5,12 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useRef } from 'react';
 import { useAppStore as useStore } from '../store/StoreContext';
 import { hentFeilbank } from '../services/feilbank';
 import { MODULES } from '../data/modules';
@@ -55,6 +56,10 @@ export default function FeilbankScreen() {
   const { userId } = useStore();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState([]);
+  const bigBtnScale = useRef(new Animated.Value(1)).current;
+
+  const onBigBtnIn = () => Animated.spring(bigBtnScale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start();
+  const onBigBtnOut = () => Animated.spring(bigBtnScale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start();
 
   useFocusEffect(
     useCallback(() => {
@@ -121,16 +126,18 @@ export default function FeilbankScreen() {
 
               {entries.length > 0 && (
                 <>
-                  <TouchableOpacity style={styles.bigBtn} onPress={øvAlle} activeOpacity={0.85}>
-                    <LinearGradient
-                      colors={['#6C63FF', '#4ECDC4']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.bigBtnGradient}
-                    >
-                      <Text style={styles.bigBtnText}>Øv på alle ({entries.length})</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  <Animated.View style={{ transform: [{ scale: bigBtnScale }] }}>
+                    <TouchableOpacity style={styles.bigBtn} onPress={øvAlle} activeOpacity={1} onPressIn={onBigBtnIn} onPressOut={onBigBtnOut}>
+                      <LinearGradient
+                        colors={['#6C63FF', '#4ECDC4']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.bigBtnGradient}
+                      >
+                        <Text style={styles.bigBtnText}>Øv på alle ({entries.length})</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </Animated.View>
                   <Text style={styles.sectionTitle}>Per kategori</Text>
                 </>
               )}

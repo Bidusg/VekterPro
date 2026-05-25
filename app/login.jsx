@@ -9,13 +9,14 @@ import {
   Platform,
   Alert,
   ScrollView,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { AntDesign } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { loggInn } from '../services/auth';
 import { googleSignIn, appleSignIn, isAppleSignInAvailable } from '../services/socialAuth';
 
@@ -91,6 +92,10 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const ctaScale = useRef(new Animated.Value(1)).current;
+
+  const onCtaPressIn = () => Animated.spring(ctaScale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start();
+  const onCtaPressOut = () => Animated.spring(ctaScale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start();
 
   useEffect(() => {
     isAppleSignInAvailable().then(setAppleAvailable);
@@ -172,11 +177,13 @@ export default function LoginScreen() {
                 onChangeText={setPassord}
                 secureTextEntry
               />
-              <TouchableOpacity style={styles.cta} onPress={onLogin} disabled={busy} activeOpacity={0.85}>
-                <LinearGradient colors={['#6C63FF', '#4ECDC4']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGrad}>
-                  {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>Logg inn</Text>}
-                </LinearGradient>
-              </TouchableOpacity>
+              <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
+                <TouchableOpacity style={styles.cta} onPress={onLogin} disabled={busy} activeOpacity={1} onPressIn={onCtaPressIn} onPressOut={onCtaPressOut}>
+                  <LinearGradient colors={['#6C63FF', '#4ECDC4']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGrad}>
+                    {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>Logg inn</Text>}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
             </View>
 
             {/* Divider */}

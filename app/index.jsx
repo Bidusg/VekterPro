@@ -12,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAppStore as useStore } from '../store/StoreContext';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 
 const { width } = Dimensions.get('window');
 
@@ -32,8 +32,8 @@ function useEntrance(delay = 0) {
       toValue: 1,
       delay,
       useNativeDriver: true,
-      friction: 8,
-      tension: 40,
+      friction: 14,
+      tension: 120,
     }).start();
   }, []);
   return anim;
@@ -56,9 +56,18 @@ function FadeSlide({ delay = 0, fromY = 20, children, style }) {
   );
 }
 
+function useSpringPress() {
+  const scale = useRef(new Animated.Value(1)).current;
+  const onPressIn = useCallback(() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start(), []);
+  const onPressOut = useCallback(() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start(), []);
+  return { scale, onPressIn, onPressOut };
+}
+
 export default function LandingScreen() {
   const router = useRouter();
   const { loading } = useStore();
+  const registerSpring = useSpringPress();
+  const loginSpring = useSpringPress();
 
   if (loading) {
     return (
@@ -112,28 +121,36 @@ export default function LandingScreen() {
 
         {/* CTA */}
         <FadeSlide delay={450} fromY={20} style={styles.ctaSection}>
-          <TouchableOpacity
-            style={styles.registerButton}
-            onPress={() => router.push('/signup')}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={['#6C63FF', '#4ECDC4']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.ctaGradient}
+          <Animated.View style={{ transform: [{ scale: registerSpring.scale }] }}>
+            <TouchableOpacity
+              style={styles.registerButton}
+              onPress={() => router.push('/signup')}
+              activeOpacity={1}
+              onPressIn={registerSpring.onPressIn}
+              onPressOut={registerSpring.onPressOut}
             >
-              <Text style={styles.registerText}>Registrer deg</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={['#6C63FF', '#4ECDC4']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.ctaGradient}
+              >
+                <Text style={styles.registerText}>Registrer deg</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
 
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => router.push('/login')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.loginText}>Logg inn</Text>
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: loginSpring.scale }] }}>
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={() => router.push('/login')}
+              activeOpacity={1}
+              onPressIn={loginSpring.onPressIn}
+              onPressOut={loginSpring.onPressOut}
+            >
+              <Text style={styles.loginText}>Logg inn</Text>
+            </TouchableOpacity>
+          </Animated.View>
 
           <Text style={styles.disclaimer}>Engangsbetaling · Ingen abonnement · Sikker betaling</Text>
         </FadeSlide>

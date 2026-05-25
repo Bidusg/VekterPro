@@ -198,7 +198,7 @@ function AuthGate() {
 export default function RootLayout() {
   return (
     <ErrorBoundary>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0f0f1a' }}>
         <StoreProvider>
           <StatusBar style="light" />
           <Stack
