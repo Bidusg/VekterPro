@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAppStore as useStore } from '../store/StoreContext';
 import { useRef, useEffect, useCallback } from 'react';
@@ -68,6 +69,7 @@ export default function LandingScreen() {
   const { loading } = useStore();
   const registerSpring = useSpringPress();
   const loginSpring = useSpringPress();
+  const insets = useSafeAreaInsets();
 
   if (loading) {
     return (
@@ -79,8 +81,8 @@ export default function LandingScreen() {
 
   return (
     <View style={styles.safe}>
-      <StatusBar style="light" backgroundColor="#1a1a2e" translucent={false} />
-      <LinearGradient colors={['#1a1a2e', '#16213e', '#0f0f1a']} style={styles.container}>
+      <StatusBar style="light" backgroundColor="transparent" translucent={true} />
+      <LinearGradient colors={['#1a1a2e', '#16213e', '#0f0f1a']} style={[styles.container, { paddingBottom: insets.bottom + 12 }]}>
 
         {/* Hero */}
         <FadeSlide delay={0} fromY={-16} style={styles.heroSection}>
@@ -169,8 +171,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 0,
     justifyContent: 'space-between',
   },
 
