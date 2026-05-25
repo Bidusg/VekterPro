@@ -207,7 +207,12 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: '#0f0f1a' },
               animation: 'fade',
             }}
-          />
+          >
+            <Stack.Screen name="index" options={{ contentStyle: { backgroundColor: '#0d1b3e' } }} />
+            <Stack.Screen name="login" options={{ contentStyle: { backgroundColor: '#0f0f1a' } }} />
+            <Stack.Screen name="signup" options={{ contentStyle: { backgroundColor: '#0f0f1a' } }} />
+            <Stack.Screen name="betaling" options={{ contentStyle: { backgroundColor: '#0f0f1a' } }} />
+          </Stack>
           <AuthGate />
           <SplashOverlay />
         </StoreProvider>

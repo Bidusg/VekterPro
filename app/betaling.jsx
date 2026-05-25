@@ -9,7 +9,6 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useState } from 'react';
@@ -316,20 +315,13 @@ export default function BetalingScreen() {
             disabled={busy}
             activeOpacity={0.85}
           >
-            <LinearGradient
-              colors={['#6C63FF', '#4ECDC4']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.ctaGradient}
-            >
-              {busy ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.ctaText}>
-                  Betal {activePlan?.price} med {activeMethod?.label} →
-                </Text>
-              )}
-            </LinearGradient>
+            {busy ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.ctaText}>
+                Betal {activePlan?.price} med {activeMethod?.label} →
+              </Text>
+            )}
           </TouchableOpacity>
           <Text style={styles.disclaimer}>Sikker betaling · Ingen binding · Pengene-tilbake-garanti</Text>
         </View>
@@ -455,9 +447,16 @@ const styles = StyleSheet.create({
   walletText: { fontSize: 14, color: '#8b9ab5', textAlign: 'center', lineHeight: 20 },
 
   ctaSection: { paddingHorizontal: 20, paddingTop: 20, alignItems: 'center' },
-  ctaButton: { width: '100%', borderRadius: 16, overflow: 'hidden', marginBottom: 12 },
+  ctaButton: {
+    width: '100%',
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6C63FF',
+    marginBottom: 12,
+  },
   ctaButtonDisabled: { opacity: 0.7 },
-  ctaGradient: { paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
   ctaText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
   disclaimer: { fontSize: 11, color: '#4a4a6a', textAlign: 'center' },
 });
