@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Image } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Updates from 'expo-updates';
 import { StoreProvider, useAppStore } from '../store/StoreContext';
 import { sjekkOgBeOmTillatelse, planleggDagligVarsel } from '../services/notifications';
 
@@ -196,6 +197,21 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    async function checkUpdate() {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch (e) {
+        console.log('Update check failed:', e);
+      }
+    }
+    if (!__DEV__) checkUpdate();
+  }, []);
+
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0d1b3e' }}>
