@@ -31,7 +31,7 @@ export default function LandingScreen() {
         />
 
         {/* Title */}
-        <Text style={styles.title}>VekterEksamen</Text>
+        <Text style={styles.title}>Vektereksamen</Text>
         <Text style={styles.subtitle}>Bestå vektereksamen{'\n'}på første forsøk</Text>
 
         {/* Feature list */}

@@ -10,6 +10,7 @@ import {
   Alert,
   ScrollView,
   Animated,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -70,7 +71,7 @@ const socialStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 14,
+    height: 50,
     borderRadius: 12,
     backgroundColor: '#ffffff',
     borderWidth: 1,
@@ -78,15 +79,10 @@ const socialStyles = StyleSheet.create({
   },
   btnBusy: { opacity: 0.7 },
   btnApple: {
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
+    backgroundColor: '#1a1a2e',
     borderColor: 'rgba(255,255,255,0.15)',
   },
-  btnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111',
-  },
+  btnText: { fontSize: 15, fontWeight: '700', color: '#111' },
 });
 
 export function oversettAuthFeil(code) {
@@ -104,12 +100,12 @@ export function oversettAuthFeil(code) {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [epost, setEpost] = useState('');
   const [passord, setPassord] = useState('');
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
-  const insets = useSafeAreaInsets();
   const ctaScale = useRef(new Animated.Value(1)).current;
 
   const onCtaPressIn = () => Animated.spring(ctaScale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start();
@@ -159,84 +155,96 @@ export default function LoginScreen() {
     <View style={styles.safe}>
       <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={[styles.container, { paddingTop: insets.top + 40 }]}>
+        <ScrollView
+          contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 20 }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Logo */}
+          <Image
+            source={require('../assets/icon.png')}
+            style={styles.logo}
+            resizeMode="cover"
+          />
 
-            {/* Logo + header */}
-            <View style={styles.header}>
-              <View style={styles.logoIcon}>
-                <Text style={styles.logoEmoji}>👮</Text>
-              </View>
-              <Text style={styles.logoText}>VekterEksamen</Text>
-              <Text style={styles.subtitle}>Logg inn på kontoen din</Text>
-            </View>
+          {/* App name */}
+          <Text style={styles.appName}>Vektereksamen</Text>
 
-            {/* Form */}
-            <View style={styles.form}>
-              <Text style={styles.label}>E-post</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="navn@epost.no"
-                placeholderTextColor="#4a4a6a"
-                value={epost}
-                onChangeText={setEpost}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-              <Text style={styles.label}>Passord</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ditt passord"
-                placeholderTextColor="#4a4a6a"
-                value={passord}
-                onChangeText={setPassord}
-                secureTextEntry
-              />
-              <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
-                <TouchableOpacity
-                  style={styles.cta}
-                  onPress={onLogin}
-                  disabled={busy}
-                  activeOpacity={1}
-                  onPressIn={onCtaPressIn}
-                  onPressOut={onCtaPressOut}
-                >
-                  <LinearGradient
-                    colors={['#6C63FF', '#4ECDC4']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.ctaGrad}
-                  >
-                    {busy
-                      ? <ActivityIndicator color="#fff" />
-                      : <Text style={styles.ctaText}>Logg inn</Text>
-                    }
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-            </View>
+          {/* Heading */}
+          <Text style={styles.heading}>Logg inn på kontoen din</Text>
+          <Text style={styles.subtitle}>Velkommen tilbake. Fortsett der du slapp.</Text>
 
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>eller</Text>
-              <View style={styles.dividerLine} />
-            </View>
+          {/* E-post */}
+          <Text style={[styles.label, { marginTop: 32 }]}>E-post</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="navn@epost.no"
+            placeholderTextColor="#4a5568"
+            value={epost}
+            onChangeText={setEpost}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoCorrect={false}
+          />
 
+          {/* Passord */}
+          <Text style={[styles.label, { marginTop: 12 }]}>Passord</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ditt passord"
+            placeholderTextColor="#4a5568"
+            value={passord}
+            onChangeText={setPassord}
+            secureTextEntry
+          />
+
+          {/* Logg inn */}
+          <Animated.View style={[{ marginTop: 24 }, { transform: [{ scale: ctaScale }] }]}>
+            <TouchableOpacity
+              style={styles.cta}
+              onPress={onLogin}
+              disabled={busy}
+              activeOpacity={1}
+              onPressIn={onCtaPressIn}
+              onPressOut={onCtaPressOut}
+            >
+              <LinearGradient
+                colors={['#6C63FF', '#4ECDC4']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.ctaGrad}
+              >
+                {busy
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.ctaText}>Logg inn</Text>
+                }
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Divider */}
+          <View style={[styles.divider, { marginTop: 24 }]}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>eller</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Sosiale knapper */}
+          <View style={{ marginTop: 16 }}>
             <SocialButtons
               onGoogle={onGoogleLogin}
               onApple={onAppleLogin}
               googleBusy={googleBusy}
               showApple={appleAvailable}
             />
+          </View>
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Har du ikke konto? </Text>
-              <TouchableOpacity onPress={() => router.push('/signup')}>
-                <Text style={styles.footerLink}>Registrer deg</Text>
-              </TouchableOpacity>
-            </View>
-
+          {/* Footer */}
+          <View style={[styles.footer, { marginTop: 24 }]}>
+            <Text style={styles.footerText}>Har du ikke konto? </Text>
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={styles.footerLink}>Registrer deg</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -246,61 +254,71 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0d1b3e' },
-  scroll: { flexGrow: 1 },
-  container: {
-    flex: 1,
+  scroll: {
     paddingHorizontal: 28,
-    paddingBottom: 36,
+    paddingBottom: 48,
   },
 
-  header: { alignItems: 'center', marginBottom: 36 },
-  logoIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 24,
-    backgroundColor: 'rgba(108,99,255,0.15)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(108,99,255,0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    alignSelf: 'center',
   },
-  logoEmoji: { fontSize: 42 },
-  logoText: {
-    fontSize: 30,
+  appName: {
+    fontSize: 28,
     fontWeight: '900',
     color: '#fff',
-    letterSpacing: -0.5,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: '#8b9ab5',
     textAlign: 'center',
+    marginTop: 12,
+    letterSpacing: -0.3,
   },
 
-  form: { marginBottom: 20 },
-  label: { fontSize: 13, fontWeight: '600', color: '#8b9ab5', marginBottom: 8, marginLeft: 2 },
+  heading: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 24,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#8892a4',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 20,
+  },
+
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8892a4',
+    marginBottom: 8,
+  },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 15,
     fontSize: 15,
     color: '#fff',
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  cta: { borderRadius: 14, overflow: 'hidden', marginTop: 4 },
-  ctaGrad: { paddingVertical: 17, alignItems: 'center' },
+
+  cta: { borderRadius: 14, overflow: 'hidden' },
+  ctaGrad: {
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   ctaText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
-  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  divider: { flexDirection: 'row', alignItems: 'center' },
   dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
-  dividerText: { color: '#4a4a6a', fontSize: 13, marginHorizontal: 12 },
+  dividerText: { color: '#4a5568', fontSize: 13, marginHorizontal: 12 },
 
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 28 },
-  footerText: { color: '#8b9ab5', fontSize: 14 },
+  footer: { flexDirection: 'row', justifyContent: 'center' },
+  footerText: { color: '#8892a4', fontSize: 14 },
   footerLink: { color: '#6C63FF', fontSize: 14, fontWeight: '700' },
 });

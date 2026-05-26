@@ -1,6 +1,6 @@
 import { nyeSporsmal } from './nye_sporsmal';
 
-// VekterEksamen – Spørsmålsdatabase
+// Vektereksamen – Spørsmålsdatabase
 // 333 unike spørsmål
 
 export const CATEGORIES = [
@@ -25,7 +25,7 @@ export const CATEGORIES = [
   { id: "Kriminalitet", name: "Kriminalitet", icon: "🚔", color: "#2C3E50" },
 ];
 
-// VekterEksamen – Spørsmålsdatabase
+// Vektereksamen – Spørsmålsdatabase
 // 333 unike spørsmål
 
 const QUESTIONS_OLD = [

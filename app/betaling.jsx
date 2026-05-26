@@ -134,7 +134,7 @@ export default function BetalingScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logoText}>VekterEksamen</Text>
+          <Text style={styles.logoText}>Vektereksamen</Text>
           <Text style={styles.heading}>Velg din tilgang</Text>
           <Text style={styles.subtitle}>Engangsbetaling – ingen abonnement</Text>
         </View>

@@ -11,7 +11,7 @@ import { sjekkOgBeOmTillatelse, planleggDagligVarsel } from '../services/notific
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 if (__DEV__) {
-  console.log('--- VekterEksamen oppstart ---');
+  console.log('--- Vektereksamen oppstart ---');
   console.log('FIREBASE_API_KEY:', process.env.EXPO_PUBLIC_FIREBASE_WEB_API_KEY ? 'finnes' : 'MANGLER');
   console.log('FIREBASE_APP_ID:', process.env.EXPO_PUBLIC_FIREBASE_WEB_APP_ID ? 'finnes' : 'MANGLER');
   console.log('GOOGLE_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ? 'finnes' : 'MANGLER');
@@ -138,7 +138,7 @@ function SplashOverlay() {
         style={[splashStyles.logo, { transform: [{ scale: scaleAnim }] }]}
         resizeMode="contain"
       />
-      <Text style={splashStyles.appName}>VekterEksamen</Text>
+      <Text style={splashStyles.appName}>Vektereksamen</Text>
       <Animated.View style={[splashStyles.pulse, { transform: [{ scale: pulseAnim }] }]} />
     </Animated.View>
   );
@@ -227,7 +227,7 @@ export default function RootLayout() {
           >
             <Stack.Screen name="index" options={{ contentStyle: { backgroundColor: '#0d1b3e' } }} />
             <Stack.Screen name="login" options={{ contentStyle: { backgroundColor: '#0d1b3e' } }} />
-            <Stack.Screen name="signup" options={{ contentStyle: { backgroundColor: '#0f0f1a' } }} />
+            <Stack.Screen name="signup" options={{ contentStyle: { backgroundColor: '#0d1b3e' } }} />
             <Stack.Screen name="betaling" options={{ contentStyle: { backgroundColor: '#0f0f1a' } }} />
           </Stack>
           <AuthGate />
