@@ -1,5 +1,5 @@
 // =============================================================
-// VEKTERPRO – FORKLARINGER
+// VEKTEREKSAMEN – FORKLARINGER
 // Forklaring til alle 333 spørsmål i pensum
 // For hvert spørsmål:
 //   riktig: Hvorfor riktig svar er riktig

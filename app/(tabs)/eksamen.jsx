@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useState } from 'react';
 import { useAppStore } from '../../store/StoreContext';
@@ -16,6 +16,8 @@ import { hentEksamensforsok } from '../../services/statistikk';
 export default function EksamenTab() {
   const router = useRouter();
   const { userId } = useAppStore();
+  const insets = useSafeAreaInsets();
+  const scrollPb = 56 + insets.bottom + 16;
   const [loading, setLoading] = useState(true);
   const [forsok, setForsok] = useState({ antall: 0, bestattPct: 0, forsok: [] });
 
@@ -32,7 +34,7 @@ export default function EksamenTab() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollPb }]} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>🎯 Eksamen</Text>
         <Text style={styles.sub}>Realistisk eksamenssimulering</Text>
 
@@ -103,7 +105,7 @@ export default function EksamenTab() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0f0f1a' },
-  scroll: { padding: 20, paddingBottom: 40 },
+  scroll: { padding: 20 },
   title: { fontSize: 26, fontWeight: '900', color: '#fff' },
   sub: { fontSize: 13, color: '#8b9ab5', marginBottom: 20 },
   heroCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },

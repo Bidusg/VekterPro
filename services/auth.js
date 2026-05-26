@@ -1,32 +1,51 @@
-// E-post/passord-autentisering for VekterPro.
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+  onAuthStateChanged,
+  sendEmailVerification,
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 
 export async function registrer(epost, passord, navn) {
-  const cred = await auth().createUserWithEmailAndPassword(epost, passord);
-  await cred.user.updateProfile({ displayName: navn });
-  await firestore().collection('users').doc(cred.user.uid).set({
+  const cred = await createUserWithEmailAndPassword(auth, epost, passord);
+  await updateProfile(cred.user, { displayName: navn });
+  await setDoc(doc(db, 'users', cred.user.uid), {
     navn,
     epost,
-    opprettet: firestore.FieldValue.serverTimestamp(),
+    opprettet: serverTimestamp(),
   });
+  try {
+    await sendEmailVerification(cred.user);
+  } catch (_) {}
   return cred.user;
 }
 
 export async function loggInn(epost, passord) {
-  const cred = await auth().signInWithEmailAndPassword(epost, passord);
+  const cred = await signInWithEmailAndPassword(auth, epost, passord);
   return cred.user;
 }
 
 export function loggUt() {
-  return auth().signOut();
+  return signOut(auth);
 }
 
 export function lyttPaaAuth(callback) {
-  return auth().onAuthStateChanged(callback);
+  return onAuthStateChanged(auth, callback);
 }
 
 export async function hentProfil(uid) {
-  const snap = await firestore().collection('users').doc(uid).get();
-  return snap.exists ? snap.data() : null;
+  const snap = await getDoc(doc(db, 'users', uid));
+  return snap.exists() ? snap.data() : null;
+}
+
+export async function oppdaterBetaling(uid, plan, expiry) {
+  await setDoc(doc(db, 'users', uid), {
+    isPaid: true,
+    plan,
+    expiry,
+    betaltTidspunkt: serverTimestamp(),
+  }, { merge: true });
 }

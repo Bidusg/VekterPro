@@ -9,18 +9,20 @@ import {
   Platform,
   Alert,
   ScrollView,
+  Animated,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { AntDesign } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
-import { useState, useEffect } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState, useEffect, useRef } from 'react';
 import { loggInn } from '../services/auth';
 import { googleSignIn, appleSignIn, isAppleSignInAvailable } from '../services/socialAuth';
 
-// ─── Google G logo (offisiell 4-farges SVG) ───────────────────────────────────
-function GoogleG({ size = 26 }) {
+function GoogleG({ size = 20 }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -31,22 +33,30 @@ function GoogleG({ size = 26 }) {
   );
 }
 
-// ─── Delte sosiale knapper (gjenbrukes i signup.jsx) ─────────────────────────
 export function SocialButtons({ onGoogle, onApple, googleBusy = false, showApple = true }) {
   return (
     <View style={socialStyles.row}>
       <TouchableOpacity
-        style={[socialStyles.circle, googleBusy && socialStyles.circleBusy]}
+        style={[socialStyles.btn, googleBusy && socialStyles.btnBusy, !showApple && { flex: 1 }]}
         onPress={onGoogle}
         disabled={googleBusy}
         activeOpacity={0.8}
       >
-        {googleBusy ? <ActivityIndicator size="small" color="#EA4335" /> : <GoogleG size={26} />}
+        {googleBusy
+          ? <ActivityIndicator size="small" color="#EA4335" />
+          : (
+            <>
+              <GoogleG size={20} />
+              <Text style={socialStyles.btnText}>Google</Text>
+            </>
+          )
+        }
       </TouchableOpacity>
 
       {showApple && (
-        <TouchableOpacity style={[socialStyles.circle, socialStyles.circleApple]} onPress={onApple} activeOpacity={0.8}>
-          <AntDesign name="apple" size={28} color="#fff" />
+        <TouchableOpacity style={[socialStyles.btn, socialStyles.btnApple]} onPress={onApple} activeOpacity={0.8}>
+          <AntDesign name="apple" size={20} color="#fff" />
+          <Text style={[socialStyles.btnText, { color: '#fff' }]}>Apple</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -54,22 +64,27 @@ export function SocialButtons({ onGoogle, onApple, googleBusy = false, showApple
 }
 
 const socialStyles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 4 },
-  circle: {
-    width: 60, height: 60, borderRadius: 30,
+  row: { flexDirection: 'row', gap: 12 },
+  btn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    height: 50,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12, shadowRadius: 6, elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
-  circleBusy: { opacity: 0.7 },
-  circleApple: {
-    backgroundColor: '#111',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  btnBusy: { opacity: 0.7 },
+  btnApple: {
+    backgroundColor: '#1a1a2e',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
+  btnText: { fontSize: 15, fontWeight: '700', color: '#111' },
 });
 
-// ─── Feilmeldinger fra Firebase ───────────────────────────────────────────────
 export function oversettAuthFeil(code) {
   switch (code) {
     case 'auth/invalid-email': return 'Ugyldig e-postadresse.';
@@ -83,14 +98,18 @@ export function oversettAuthFeil(code) {
   }
 }
 
-// ─── LoginScreen ──────────────────────────────────────────────────────────────
 export default function LoginScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [epost, setEpost] = useState('');
   const [passord, setPassord] = useState('');
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const ctaScale = useRef(new Animated.Value(1)).current;
+
+  const onCtaPressIn = () => Animated.spring(ctaScale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start();
+  const onCtaPressOut = () => Animated.spring(ctaScale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start();
 
   useEffect(() => {
     isAppleSignInAvailable().then(setAppleAvailable);
@@ -104,7 +123,6 @@ export default function LoginScreen() {
     setBusy(true);
     try {
       await loggInn(epost.trim(), passord);
-      router.replace('/');
     } catch (e) {
       Alert.alert('Innlogging feilet', oversettAuthFeil(e.code) || e.message);
     } finally {
@@ -126,7 +144,6 @@ export default function LoginScreen() {
   async function onAppleLogin() {
     try {
       await appleSignIn();
-      // AuthGate håndterer navigering
     } catch (e) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
         Alert.alert('Apple-innlogging feilet', e.message);
@@ -135,113 +152,173 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.container}>
+        <ScrollView
+          contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 20 }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Logo */}
+          <Image
+            source={require('../assets/icon.png')}
+            style={styles.logo}
+            resizeMode="cover"
+          />
 
-            <View style={styles.logoWrap}>
-              <View style={styles.logoIcon}>
-                <Text style={styles.logoEmoji}>👮</Text>
-              </View>
-              <Text style={styles.logoText}>VekterPro</Text>
-            </View>
+          {/* App name */}
+          <Text style={styles.appName}>Vektereksamen</Text>
 
-            <Text style={styles.heading}>Logg inn på kontoen din</Text>
-            <Text style={styles.subtitle}>Velkommen tilbake. Fortsett der du slapp.</Text>
+          {/* Heading */}
+          <Text style={styles.heading}>Logg inn på kontoen din</Text>
+          <Text style={styles.subtitle}>Velkommen tilbake. Fortsett der du slapp.</Text>
 
-            {/* Form */}
-            <View style={styles.form}>
-              <Text style={styles.label}>E-post</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="navn@epost.no"
-                placeholderTextColor="#4a4a6a"
-                value={epost}
-                onChangeText={setEpost}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-              <Text style={styles.label}>Passord</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ditt passord"
-                placeholderTextColor="#4a4a6a"
-                value={passord}
-                onChangeText={setPassord}
-                secureTextEntry
-              />
-              <TouchableOpacity style={styles.cta} onPress={onLogin} disabled={busy} activeOpacity={0.85}>
-                <LinearGradient colors={['#6C63FF', '#4ECDC4']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGrad}>
-                  {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>Logg inn</Text>}
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+          {/* E-post */}
+          <Text style={[styles.label, { marginTop: 32 }]}>E-post</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="navn@epost.no"
+            placeholderTextColor="#4a5568"
+            value={epost}
+            onChangeText={setEpost}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoCorrect={false}
+          />
 
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>eller</Text>
-              <View style={styles.dividerLine} />
-            </View>
+          {/* Passord */}
+          <Text style={[styles.label, { marginTop: 12 }]}>Passord</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ditt passord"
+            placeholderTextColor="#4a5568"
+            value={passord}
+            onChangeText={setPassord}
+            secureTextEntry
+          />
 
-            {/* Sosiale knapper — under primærknapp */}
+          {/* Logg inn */}
+          <Animated.View style={[{ marginTop: 24 }, { transform: [{ scale: ctaScale }] }]}>
+            <TouchableOpacity
+              style={styles.cta}
+              onPress={onLogin}
+              disabled={busy}
+              activeOpacity={1}
+              onPressIn={onCtaPressIn}
+              onPressOut={onCtaPressOut}
+            >
+              <LinearGradient
+                colors={['#6C63FF', '#4ECDC4']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.ctaGrad}
+              >
+                {busy
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.ctaText}>Logg inn</Text>
+                }
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Divider */}
+          <View style={[styles.divider, { marginTop: 24 }]}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>eller</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Sosiale knapper */}
+          <View style={{ marginTop: 16 }}>
             <SocialButtons
               onGoogle={onGoogleLogin}
               onApple={onAppleLogin}
               googleBusy={googleBusy}
               showApple={appleAvailable}
             />
+          </View>
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Har du ikke konto? </Text>
-              <TouchableOpacity onPress={() => router.push('/signup')}>
-                <Text style={styles.footerLink}>Registrer deg</Text>
-              </TouchableOpacity>
-            </View>
-
+          {/* Footer */}
+          <View style={[styles.footer, { marginTop: 24 }]}>
+            <Text style={styles.footerText}>Har du ikke konto? </Text>
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={styles.footerLink}>Registrer deg</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0f0f1a' },
-  scroll: { flexGrow: 1 },
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 40, paddingBottom: 32 },
-
-  logoWrap: { alignItems: 'center', marginBottom: 24 },
-  logoIcon: {
-    width: 64, height: 64, borderRadius: 16,
-    backgroundColor: 'rgba(108,99,255,0.15)',
-    borderWidth: 1, borderColor: 'rgba(108,99,255,0.3)',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 10,
+  safe: { flex: 1, backgroundColor: '#0d1b3e' },
+  scroll: {
+    paddingHorizontal: 28,
+    paddingBottom: 48,
   },
-  logoEmoji: { fontSize: 32 },
-  logoText: { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
 
-  heading: { fontSize: 22, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 6 },
-  subtitle: { fontSize: 14, color: '#8b9ab5', textAlign: 'center', marginBottom: 24 },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    alignSelf: 'center',
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 12,
+    letterSpacing: -0.3,
+  },
 
-  form: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#8b9ab5', marginBottom: 6, marginLeft: 2 },
+  heading: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 24,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#8892a4',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 20,
+  },
+
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8892a4',
+    marginBottom: 8,
+  },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 15, color: '#fff', marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    color: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
-  cta: { borderRadius: 14, overflow: 'hidden', marginTop: 4 },
-  ctaGrad: { paddingVertical: 16, alignItems: 'center' },
+
+  cta: { borderRadius: 14, overflow: 'hidden' },
+  ctaGrad: {
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   ctaText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
-  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  divider: { flexDirection: 'row', alignItems: 'center' },
   dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
-  dividerText: { color: '#4a4a6a', fontSize: 13, marginHorizontal: 12 },
+  dividerText: { color: '#4a5568', fontSize: 13, marginHorizontal: 12 },
 
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 28 },
-  footerText: { color: '#8b9ab5', fontSize: 14 },
+  footer: { flexDirection: 'row', justifyContent: 'center' },
+  footerText: { color: '#8892a4', fontSize: 14 },
   footerLink: { color: '#6C63FF', fontSize: 14, fontWeight: '700' },
 });

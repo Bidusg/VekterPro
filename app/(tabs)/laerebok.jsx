@@ -6,9 +6,10 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  InteractionManager,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useCallback, useState, useMemo } from 'react';
 import { useAppStore } from '../../store/StoreContext';
@@ -21,6 +22,8 @@ const NAVY = '#1e4d8c';
 export default function LaerebokTab() {
   const router = useRouter();
   const { userId } = useAppStore();
+  const insets = useSafeAreaInsets();
+  const scrollPb = 56 + insets.bottom + 16;
   const [search, setSearch] = useState('');
   const [lest, setLest] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,10 +32,17 @@ export default function LaerebokTab() {
     useCallback(() => {
       if (!userId) { setLoading(false); return; }
       let alive = true;
-      hentLesteModuler(userId).then((l) => {
-        if (alive) { setLest(l); setLoading(false); }
+      const task = InteractionManager.runAfterInteractions(() => {
+        hentLesteModuler(userId).then((l) => {
+          if (alive) { setLest(l); setLoading(false); }
+        }).catch(() => {
+          if (alive) setLoading(false);
+        });
       });
-      return () => { alive = false; };
+      return () => {
+        alive = false;
+        task.cancel();
+      };
     }, [userId])
   );
 
@@ -50,7 +60,7 @@ export default function LaerebokTab() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollPb }]} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
         <View style={styles.headerRow}>
@@ -129,7 +139,7 @@ export default function LaerebokTab() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0f0f1a' },
-  scroll: { padding: 20, paddingBottom: 40 },
+  scroll: { padding: 20 },
 
   headerRow: {
     flexDirection: 'row', justifyContent: 'space-between',

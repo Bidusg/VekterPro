@@ -9,17 +9,21 @@ import {
   Platform,
   Alert,
   ScrollView,
+  Animated,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState, useEffect, useRef } from 'react';
 import { registrer } from '../services/auth';
 import { oversettAuthFeil, SocialButtons } from './login';
 import { googleSignIn, appleSignIn, isAppleSignInAvailable } from '../services/socialAuth';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [fornavn, setFornavn] = useState('');
   const [etternavn, setEtternavn] = useState('');
   const [epost, setEpost] = useState('');
@@ -28,6 +32,10 @@ export default function SignupScreen() {
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const ctaScale = useRef(new Animated.Value(1)).current;
+
+  const onCtaPressIn = () => Animated.spring(ctaScale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start();
+  const onCtaPressOut = () => Animated.spring(ctaScale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start();
 
   useEffect(() => {
     isAppleSignInAvailable().then(setAppleAvailable);
@@ -72,7 +80,6 @@ export default function SignupScreen() {
   async function onAppleRegister() {
     try {
       await appleSignIn();
-      // AuthGate håndterer navigering (ny bruker → /betaling)
     } catch (e) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
         Alert.alert('Apple-registrering feilet', e.message);
@@ -81,152 +88,213 @@ export default function SignupScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.container}>
+        <ScrollView
+          contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 20 }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Logo */}
+          <Image
+            source={require('../assets/icon.png')}
+            style={styles.logo}
+            resizeMode="cover"
+          />
 
-            <View style={styles.logoWrap}>
-              <View style={styles.logoIcon}>
-                <Text style={styles.logoEmoji}>👮</Text>
-              </View>
-              <Text style={styles.logoText}>VekterPro</Text>
-            </View>
+          {/* App name */}
+          <Text style={styles.appName}>Vektereksamen</Text>
 
-            <Text style={styles.heading}>Opprett konto</Text>
-            <Text style={styles.subtitle}>Lag en konto for å lagre fremgangen din</Text>
+          {/* Heading */}
+          <Text style={styles.heading}>Opprett konto</Text>
+          <Text style={styles.subtitle}>Lag en konto for å lagre fremgangen din</Text>
 
-            {/* Form */}
-            <View style={styles.form}>
-              <View style={styles.nameRow}>
-                <View style={styles.nameField}>
-                  <Text style={styles.label}>Fornavn</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ola"
-                    placeholderTextColor="#4a4a6a"
-                    value={fornavn}
-                    onChangeText={setFornavn}
-                    autoCapitalize="words"
-                  />
-                </View>
-                <View style={styles.nameField}>
-                  <Text style={styles.label}>Etternavn</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nordmann"
-                    placeholderTextColor="#4a4a6a"
-                    value={etternavn}
-                    onChangeText={setEtternavn}
-                    autoCapitalize="words"
-                  />
-                </View>
-              </View>
-
-              <Text style={styles.label}>E-post</Text>
+          {/* Fornavn + Etternavn side om side */}
+          <View style={[styles.nameRow, { marginTop: 32 }]}>
+            <View style={styles.nameField}>
+              <Text style={styles.label}>Fornavn</Text>
               <TextInput
                 style={styles.input}
-                placeholder="navn@epost.no"
-                placeholderTextColor="#4a4a6a"
-                value={epost}
-                onChangeText={setEpost}
-                autoCapitalize="none"
-                keyboardType="email-address"
+                placeholder="Ola"
+                placeholderTextColor="#4a5568"
+                value={fornavn}
+                onChangeText={setFornavn}
+                autoCapitalize="words"
               />
-
-              <Text style={styles.label}>Passord</Text>
+            </View>
+            <View style={styles.nameField}>
+              <Text style={styles.label}>Etternavn</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Minst 6 tegn"
-                placeholderTextColor="#4a4a6a"
-                value={passord}
-                onChangeText={setPassord}
-                secureTextEntry
+                placeholder="Nordmann"
+                placeholderTextColor="#4a5568"
+                value={etternavn}
+                onChangeText={setEtternavn}
+                autoCapitalize="words"
               />
-
-              <Text style={styles.label}>Bekreft passord</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Gjenta passordet"
-                placeholderTextColor="#4a4a6a"
-                value={bekreftPassord}
-                onChangeText={setBekreftPassord}
-                secureTextEntry
-              />
-
-              <TouchableOpacity style={styles.cta} onPress={onRegister} disabled={busy} activeOpacity={0.85}>
-                <LinearGradient colors={['#6C63FF', '#4ECDC4']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGrad}>
-                  {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>Registrer deg</Text>}
-                </LinearGradient>
-              </TouchableOpacity>
             </View>
+          </View>
 
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>eller</Text>
-              <View style={styles.dividerLine} />
-            </View>
+          {/* E-post */}
+          <Text style={[styles.label, { marginTop: 12 }]}>E-post</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="navn@epost.no"
+            placeholderTextColor="#4a5568"
+            value={epost}
+            onChangeText={setEpost}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoCorrect={false}
+          />
 
-            {/* Sosiale knapper — under primærknapp */}
+          {/* Passord */}
+          <Text style={[styles.label, { marginTop: 12 }]}>Passord</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Minst 6 tegn"
+            placeholderTextColor="#4a5568"
+            value={passord}
+            onChangeText={setPassord}
+            secureTextEntry
+          />
+
+          {/* Bekreft passord */}
+          <Text style={[styles.label, { marginTop: 12 }]}>Bekreft passord</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Gjenta passordet"
+            placeholderTextColor="#4a5568"
+            value={bekreftPassord}
+            onChangeText={setBekreftPassord}
+            secureTextEntry
+          />
+
+          {/* Registrer deg */}
+          <Animated.View style={[{ marginTop: 24 }, { transform: [{ scale: ctaScale }] }]}>
+            <TouchableOpacity
+              style={styles.cta}
+              onPress={onRegister}
+              disabled={busy}
+              activeOpacity={1}
+              onPressIn={onCtaPressIn}
+              onPressOut={onCtaPressOut}
+            >
+              <LinearGradient
+                colors={['#6C63FF', '#4ECDC4']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.ctaGrad}
+              >
+                {busy
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.ctaText}>Registrer deg</Text>
+                }
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Divider */}
+          <View style={[styles.divider, { marginTop: 24 }]}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>eller</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Sosiale knapper */}
+          <View style={{ marginTop: 16 }}>
             <SocialButtons
               onGoogle={onGoogleRegister}
               onApple={onAppleRegister}
               googleBusy={googleBusy}
               showApple={appleAvailable}
             />
+          </View>
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Har du allerede konto? </Text>
-              <TouchableOpacity onPress={() => router.push('/login')}>
-                <Text style={styles.footerLink}>Logg inn</Text>
-              </TouchableOpacity>
-            </View>
-
+          {/* Footer */}
+          <View style={[styles.footer, { marginTop: 24 }]}>
+            <Text style={styles.footerText}>Har du allerede konto? </Text>
+            <TouchableOpacity onPress={() => router.push('/login')}>
+              <Text style={styles.footerLink}>Logg inn</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0f0f1a' },
-  scroll: { flexGrow: 1 },
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 40, paddingBottom: 32 },
-
-  logoWrap: { alignItems: 'center', marginBottom: 20 },
-  logoIcon: {
-    width: 64, height: 64, borderRadius: 16,
-    backgroundColor: 'rgba(108,99,255,0.15)',
-    borderWidth: 1, borderColor: 'rgba(108,99,255,0.3)',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 10,
+  safe: { flex: 1, backgroundColor: '#0d1b3e' },
+  scroll: {
+    paddingHorizontal: 28,
+    paddingBottom: 48,
   },
-  logoEmoji: { fontSize: 32 },
-  logoText: { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
 
-  heading: { fontSize: 22, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 6 },
-  subtitle: { fontSize: 14, color: '#8b9ab5', textAlign: 'center', marginBottom: 20 },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    alignSelf: 'center',
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 12,
+    letterSpacing: -0.3,
+  },
 
-  form: { marginBottom: 16 },
+  heading: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 24,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#8892a4',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 20,
+  },
+
   nameRow: { flexDirection: 'row', gap: 10 },
   nameField: { flex: 1 },
-  label: { fontSize: 13, fontWeight: '600', color: '#8b9ab5', marginBottom: 6, marginLeft: 2 },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 15, color: '#fff', marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8892a4',
+    marginBottom: 8,
   },
-  cta: { borderRadius: 14, overflow: 'hidden', marginTop: 4 },
-  ctaGrad: { paddingVertical: 16, alignItems: 'center' },
+  input: {
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    color: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+
+  cta: { borderRadius: 14, overflow: 'hidden' },
+  ctaGrad: {
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   ctaText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
-  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  divider: { flexDirection: 'row', alignItems: 'center' },
   dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
-  dividerText: { color: '#4a4a6a', fontSize: 13, marginHorizontal: 12 },
+  dividerText: { color: '#4a5568', fontSize: 13, marginHorizontal: 12 },
 
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  footerText: { color: '#8b9ab5', fontSize: 14 },
+  footer: { flexDirection: 'row', justifyContent: 'center' },
+  footerText: { color: '#8892a4', fontSize: 14 },
   footerLink: { color: '#6C63FF', fontSize: 14, fontWeight: '700' },
 });

@@ -1,217 +1,152 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  ActivityIndicator,
-  Animated,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useAppStore as useStore } from '../store/StoreContext';
-import { useRef, useEffect } from 'react';
-
-const { width } = Dimensions.get('window');
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const FEATURES = [
-  { icon: 'quiz',         text: '389 spørsmål' },
-  { icon: 'menu-book',    text: 'Eksamensmodus' },
-  { icon: 'flash-on',     text: 'Flashcards' },
-  { icon: 'bar-chart',    text: 'Fremgang' },
-  { icon: 'group',        text: 'Øvingsmodus' },
-  { icon: 'emoji-events', text: 'Bestått/ikke bestått' },
+  { text: '633+ øvingsspørsmål' },
+  { text: 'Komplett digital lærebok' },
+  { text: 'Flashcards og feilbank' },
 ];
-
-function useEntrance(delay = 0) {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.spring(anim, {
-      toValue: 1,
-      delay,
-      useNativeDriver: true,
-      friction: 8,
-      tension: 40,
-    }).start();
-  }, []);
-  return anim;
-}
-
-function FadeSlide({ delay = 0, fromY = 20, children, style }) {
-  const anim = useEntrance(delay);
-  return (
-    <Animated.View
-      style={[
-        style,
-        {
-          opacity: anim,
-          transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [fromY, 0] }) }],
-        },
-      ]}
-    >
-      {children}
-    </Animated.View>
-  );
-}
 
 export default function LandingScreen() {
   const router = useRouter();
-  const { loading } = useStore();
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6C63FF" />
-      </View>
-    );
-  }
+  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <LinearGradient colors={['#1a1a2e', '#16213e', '#0f0f1a']} style={styles.container}>
+    <View style={styles.safe}>
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 36 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Logo */}
+        <Image
+          source={require('../assets/icon.png')}
+          style={styles.logo}
+          resizeMode="cover"
+        />
 
-        {/* Hero */}
-        <FadeSlide delay={0} fromY={-16} style={styles.heroSection}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>👮 NORSK VEKTEREKSAMEN</Text>
-          </View>
-          <Text style={styles.heroTitle}>VekterPro</Text>
-          <Text style={styles.heroSubtitle}>Bestå vektereksamen på første forsøk</Text>
-        </FadeSlide>
+        {/* Title */}
+        <Text style={styles.title}>Vektereksamen</Text>
+        <Text style={styles.subtitle}>Bestå vektereksamen{'\n'}på første forsøk</Text>
 
-        {/* Stats */}
-        <FadeSlide delay={150} fromY={16} style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>333</Text>
-            <Text style={styles.statLabel}>Spørsmål</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>19</Text>
-            <Text style={styles.statLabel}>Kategorier</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>75%</Text>
-            <Text style={styles.statLabel}>Grense</Text>
-          </View>
-        </FadeSlide>
-
-        {/* Features */}
-        <FadeSlide delay={300} fromY={16} style={styles.featureGrid}>
+        {/* Feature list */}
+        <View style={styles.features}>
           {FEATURES.map((f, i) => (
-            <View key={i} style={styles.featureCard}>
-              <MaterialIcons name={f.icon} size={20} color="#6C63FF" />
+            <View key={i} style={styles.featureRow}>
+              <View style={styles.featureCheck}>
+                <Text style={styles.featureCheckText}>✓</Text>
+              </View>
               <Text style={styles.featureText}>{f.text}</Text>
             </View>
           ))}
-        </FadeSlide>
+        </View>
 
         {/* CTA */}
-        <FadeSlide delay={450} fromY={20} style={styles.ctaSection}>
-          <TouchableOpacity
-            style={styles.registerButton}
-            onPress={() => router.push('/signup')}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={['#6C63FF', '#4ECDC4']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.ctaGradient}
-            >
-              <Text style={styles.registerText}>Registrer deg</Text>
-            </LinearGradient>
+        <TouchableOpacity
+          style={styles.ctaBtn}
+          onPress={() => router.push('/signup')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.ctaText}>Kom i gang</Text>
+        </TouchableOpacity>
+
+        {/* Login link */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Har du allerede konto? </Text>
+          <TouchableOpacity onPress={() => router.push('/login')}>
+            <Text style={styles.footerLink}>Logg inn</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => router.push('/login')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.loginText}>Logg inn</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.disclaimer}>Engangsbetaling · Ingen abonnement · Sikker betaling</Text>
-        </FadeSlide>
-
-      </LinearGradient>
-    </SafeAreaView>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
-const CARD_W = (width - 52) / 2;
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0f0f1a' },
-  loadingContainer: { flex: 1, backgroundColor: '#0f0f1a', justifyContent: 'center', alignItems: 'center' },
-
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
-    justifyContent: 'space-between',
+  safe: { flex: 1, backgroundColor: '#0d1b3e' },
+  scroll: {
+    paddingHorizontal: 28,
+    alignItems: 'center',
   },
 
-  heroSection: { alignItems: 'center' },
-  badge: {
-    backgroundColor: 'rgba(108,99,255,0.2)',
+  logo: {
+    width: 80,
+    height: 80,
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(108,99,255,0.4)',
-    marginBottom: 10,
+    marginBottom: 24,
   },
-  badgeText: { color: '#a09dff', fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
-  heroTitle: { fontSize: 42, fontWeight: '900', color: '#ffffff', letterSpacing: -1, marginBottom: 4 },
-  heroSubtitle: { fontSize: 14, color: '#8b9ab5', textAlign: 'center', lineHeight: 20 },
 
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  statBox: { flex: 1, alignItems: 'center' },
-  statNum: { fontSize: 20, fontWeight: '800', color: '#6C63FF' },
-  statLabel: { fontSize: 11, color: '#8b9ab5', marginTop: 1 },
-  statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginHorizontal: 6 },
-
-  featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  featureCard: {
-    width: CARD_W,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  featureText: { fontSize: 12, color: '#c8d0e0', flex: 1, lineHeight: 16 },
-
-  ctaSection: {},
-  registerButton: { width: '100%', borderRadius: 14, overflow: 'hidden', marginBottom: 10 },
-  ctaGradient: { paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
-  registerText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
-  loginButton: {
-    width: '100%',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(108,99,255,0.5)',
-    paddingVertical: 14,
-    alignItems: 'center',
+  title: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: -0.5,
     marginBottom: 12,
+    textAlign: 'center',
   },
-  loginText: { color: '#6C63FF', fontSize: 16, fontWeight: '700' },
-  disclaimer: { fontSize: 11, color: '#4a4a6a', textAlign: 'center' },
+  subtitle: {
+    fontSize: 17,
+    color: '#8892a4',
+    textAlign: 'center',
+    lineHeight: 26,
+    marginBottom: 44,
+  },
+
+  features: {
+    width: '100%',
+    marginBottom: 44,
+    gap: 16,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  featureCheck: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(212,175,55,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  featureCheckText: {
+    color: '#D4AF37',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  featureText: {
+    fontSize: 16,
+    color: '#d0d8e8',
+    fontWeight: '600',
+  },
+
+  ctaBtn: {
+    width: '100%',
+    backgroundColor: '#D4AF37',
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  ctaText: {
+    color: '#0d1b3e',
+    fontSize: 17,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  footerText: { color: '#8892a4', fontSize: 14 },
+  footerLink: { color: '#D4AF37', fontSize: 14, fontWeight: '700' },
 });

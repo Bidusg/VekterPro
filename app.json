@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "VekterPro",
+    "name": "Vektereksamen",
     "slug": "vekterpro",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "scheme": "vekterpro",
+    "scheme": "vektereksamen",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -14,9 +14,11 @@
     },
     "ios": {
       "supportsTablet": false,
+      "buildNumber": "11",
       "bundleIdentifier": "com.Kidus.VekterEksamen",
       "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",
+      "jsEngine": "hermes",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -27,7 +29,8 @@
         "backgroundColor": "#0f0f1a"
       },
       "package": "com.Kidus.Vektereksamen",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "jsEngine": "hermes"
     },
     "platforms": [
       "ios",
@@ -41,13 +44,12 @@
     },
     "plugins": [
       "expo-router",
+      "expo-updates",
       "expo-font",
       "expo-web-browser",
+      "expo-notifications",
       "expo-apple-authentication",
-      "@react-native-firebase/app",
-      "@react-native-firebase/auth",
       "@react-native-google-signin/google-signin",
-      "./app.plugin",
       [
         "expo-build-properties",
         {
@@ -62,6 +64,14 @@
       "eas": {
         "projectId": "28e69c54-f45d-4722-acaa-c7ad3132bc40"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/28e69c54-f45d-4722-acaa-c7ad3132bc40",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD"
     }
   }
 }

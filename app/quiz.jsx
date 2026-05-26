@@ -6,8 +6,8 @@ import {
   ScrollView,
   Modal,
   Dimensions,
-  Animated,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,10 +20,12 @@ import { registrerSvar, registrerEksamensforsok } from '../services/statistikk';
 import { registrerAktivitet } from '../services/streak';
 import { settSistKategori } from '../services/laeringsfremgang';
 import { fullførDagligUtfordring } from '../services/dailyChallenge';
+import { clearAllCaches } from '../services/tabCache';
 import { useState, useEffect, useRef } from 'react';
 
 const { width } = Dimensions.get('window');
 const EXAM_COUNT = 80;
+const QUESTIONS_MAP = new Map(QUESTIONS.map((q) => [String(q.id), q]));
 
 function shuffle(arr) {
   const a = [...arr];
@@ -178,13 +180,24 @@ export default function QuizScreen() {
   const [lesMerCat, setLesMerCat] = useState(null);
   const [done, setDone] = useState(false);
   const [removedIds, setRemovedIds] = useState(new Set()); // qId-er fjernet fra feilbank denne økten
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const cardOpacity = useSharedValue(1);
+  const cardTranslateX = useSharedValue(0);
+  const cardAnimStyle = useAnimatedStyle(() => ({
+    opacity: cardOpacity.value,
+    transform: [{ translateX: cardTranslateX.value }],
+  }));
 
   const erFeilbankØving = !isExam && !!feilbankIds;
   const erDaglig = isDaily && !!dailyIds;
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     buildQuestions();
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      clearAllCaches();
+    };
   }, []);
 
   // Reshuffler svaralternativene hver gang et nytt (ubesvart) spørsmål vises
@@ -204,7 +217,7 @@ export default function QuizScreen() {
     if (isDaily && dailyIds) {
       const ids = String(dailyIds).split(',');
       // Behold rekkefølgen fra dailyIds (allerede tilfeldig valgt)
-      pool = ids.map((id) => QUESTIONS.find((q) => String(q.id) === id)).filter(Boolean);
+      pool = ids.map((id) => QUESTIONS_MAP.get(id)).filter(Boolean);
       setQuestions(pool.map(shuffleOptions));
       return;
     }
@@ -233,11 +246,12 @@ export default function QuizScreen() {
   }
 
   function animateTransition(cb) {
-    Animated.sequence([
-      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
-      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
+    // Reset til høyre og usynlig, så spring inn fra venstre
+    cardTranslateX.value = 50;
+    cardOpacity.value = 0;
     cb();
+    cardTranslateX.value = withSpring(0, { damping: 20, stiffness: 200 });
+    cardOpacity.value = withTiming(1, { duration: 200 });
   }
 
   function loggSvarStat(q, riktig) {
@@ -261,17 +275,17 @@ export default function QuizScreen() {
       // Skriv til feilbank kun ved første svar (unngå støy ved retting)
       if (erFørsteSvar) {
         const riktig = optIdx === q.ans;
-        console.log('[quiz] EKSAMEN svar – riktig:', riktig, 'userId:', userId, 'qId:', q.id);
         if (riktig) {
           registrerRiktigSvar(userId, q);
         } else {
+          console.log('[quiz] feil svar → feilbank:', userId, q.id, q.q?.slice(0, 50));
           registrerFeilSvar(userId, q);
         }
         loggSvarStat(q, riktig);
       }
 
       if (erFørsteSvar) {
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           if (current + 1 >= questions.length) {
             setDone(true);
           } else {
@@ -292,12 +306,10 @@ export default function QuizScreen() {
 
       // Skriv til feilbank
       if (erFørsteSvar) {
-        console.log('[quiz] ØVING svar – riktig:', correct, 'userId:', userId, 'qId:', q.id);
         loggSvarStat(q, correct);
         if (correct) {
           registrerRiktigSvar(userId, q).then((res) => {
             if (res?.fjernet && erFeilbankØving) {
-              console.log('[quiz] fjerner spørsmål', q.id, 'fra denne øktens pool');
               setRemovedIds((prev) => {
                 const next = new Set(prev);
                 next.add(q.id);
@@ -306,6 +318,7 @@ export default function QuizScreen() {
             }
           });
         } else {
+          console.log('[quiz] feil svar → feilbank:', userId, q.id, q.q?.slice(0, 50));
           registrerFeilSvar(userId, q);
         }
       }
@@ -315,7 +328,7 @@ export default function QuizScreen() {
 
       if (correct) {
         // Auto-advance kun ved riktig svar
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           goToNext();
         }, 1400);
       }
@@ -452,13 +465,11 @@ export default function QuizScreen() {
 
       {/* Progress bar */}
       <View style={styles.progressBarBg}>
-        <Animated.View
-          style={[styles.progressBarFill, { width: `${progress_pct}%` }]}
-        />
+        <View style={[styles.progressBarFill, { width: `${progress_pct}%` }]} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Animated.View style={{ opacity: fadeAnim }}>
+        <Animated.View style={cardAnimStyle}>
           {/* Question */}
           <View style={styles.questionCard}>
             <View style={styles.questionMeta}>
