@@ -8,6 +8,7 @@ import {
   InteractionManager,
   useWindowDimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -156,8 +157,19 @@ export default function HjemTab() {
     ]);
   }, []);
 
+  const devReset = useCallback(async () => {
+    await AsyncStorage.clear();
+    await loggUt();
+    router.replace('/index');
+  }, [router]);
+
   return (
     <SafeAreaView style={styles.safe}>
+      {__DEV__ && (
+        <TouchableOpacity style={styles.devReset} onPress={devReset}>
+          <Text style={styles.devResetText}>🔄 Reset</Text>
+        </TouchableOpacity>
+      )}
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: padding, paddingTop: padding, paddingBottom: scrollPb }}
         showsVerticalScrollIndicator={false}
@@ -383,4 +395,16 @@ const styles = StyleSheet.create({
   shortcutIcon: { fontSize: 28, marginBottom: 8 },
   shortcutTitle: { color: '#fff', fontSize: 14, fontWeight: '700' },
   shortcutSub: { color: '#8b9ab5', fontSize: 11, marginTop: 3 },
+
+  devReset: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 100,
+    backgroundColor: 'rgba(220,30,30,0.85)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  devResetText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });

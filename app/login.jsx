@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { AntDesign } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useEffect, useRef } from 'react';
 import { loggInn } from '../services/auth';
 import { googleSignIn, appleSignIn, isAppleSignInAvailable } from '../services/socialAuth';
@@ -108,6 +109,7 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const insets = useSafeAreaInsets();
   const ctaScale = useRef(new Animated.Value(1)).current;
 
   const onCtaPressIn = () => Animated.spring(ctaScale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start();
@@ -158,7 +160,7 @@ export default function LoginScreen() {
       <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.container}>
+          <View style={[styles.container, { paddingTop: insets.top + 40 }]}>
 
             {/* Logo + header */}
             <View style={styles.header}>
@@ -248,7 +250,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 28,
-    paddingTop: 60,
     paddingBottom: 36,
   },
 
