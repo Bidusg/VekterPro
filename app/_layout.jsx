@@ -175,7 +175,7 @@ function AuthGate() {
     const inPayment = segments[0] === 'betaling';
 
     if (!userId) {
-      if (!inAuth && !inLanding) router.replace('/');
+      if (!inAuth && !inLanding) router.replace('/login');
     } else if (ADMIN_EMAILS.includes(epost)) {
       if (inAuth || inLanding || inPayment) router.replace('/(tabs)/hjem');
     } else if (!isPaid) {
@@ -226,7 +226,7 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="index" options={{ contentStyle: { backgroundColor: '#0d1b3e' } }} />
-            <Stack.Screen name="login" options={{ contentStyle: { backgroundColor: '#0f0f1a' } }} />
+            <Stack.Screen name="login" options={{ contentStyle: { backgroundColor: '#0d1b3e' } }} />
             <Stack.Screen name="signup" options={{ contentStyle: { backgroundColor: '#0f0f1a' } }} />
             <Stack.Screen name="betaling" options={{ contentStyle: { backgroundColor: '#0f0f1a' } }} />
           </Stack>

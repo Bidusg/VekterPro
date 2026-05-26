@@ -109,7 +109,7 @@ export default function LoginScreen() {
     setBusy(true);
     try {
       await loggInn(epost.trim(), passord);
-      router.replace('/');
+      // AuthGate håndterer redirect basert på auth/betaling-status
     } catch (e) {
       Alert.alert('Innlogging feilet', oversettAuthFeil(e.code) || e.message);
     } finally {
@@ -141,7 +141,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.safe}>
-      <StatusBar style="light" backgroundColor="#0f0f1a" translucent={false} />
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.container}>
@@ -216,7 +216,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0f0f1a' },
+  safe: { flex: 1, backgroundColor: '#0d1b3e' },
   scroll: { flexGrow: 1 },
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 40, paddingBottom: 32 },
 
