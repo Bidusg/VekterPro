@@ -175,7 +175,7 @@ function AuthGate() {
     const inPayment = segments[0] === 'betaling';
 
     if (!userId) {
-      if (!inAuth && !inLanding) router.replace('/login');
+      if (!inAuth && !inLanding) router.replace('/index');
     } else if (ADMIN_EMAILS.includes(epost)) {
       if (inAuth || inLanding || inPayment) router.replace('/(tabs)/hjem');
     } else if (!isPaid) {

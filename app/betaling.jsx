@@ -10,9 +10,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
 import { useState } from 'react';
+import { SvgXml } from 'react-native-svg';
 import { useAppStore } from '../store/StoreContext';
+
+const APPLE_PAY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 210.2" fill="white"><path d="M93.6,27.1C87.6,34.2,78,39.8,68.4,39c-1.2-9.6,3.5-19.8,9-26.1c6-7.3,16.5-12.5,25-12.9C103.4,10,99.5,19.8,93.6,27.1 M102.3,40.9c-13.9-0.8-25.8,7.9-32.4,7.9c-6.7,0-16.8-7.5-27.8-7.3c-14.3,0.2-27.6,8.3-34.9,21.2c-15,25.8-3.9,64,10.6,85c7.1,10.4,15.6,21.8,26.8,21.4c10.6-0.4,14.8-6.9,27.6-6.9c12.9,0,16.6,6.9,27.8,6.7c11.6-0.2,18.9-10.4,26-20.8c8.1-11.8,11.4-23.3,11.6-23.9c-0.2-0.2-22.4-8.7-22.6-34.3c-0.2-21.4,17.5-31.6,18.3-32.2C123.3,42.9,107.7,41.3,102.3,40.9 M182.6,11.9v155.9h24.2v-53.3h33.5c30.6,0,52.1-21,52.1-51.4c0-30.4-21.1-51.2-51.3-51.2H182.6z M206.8,32.3h27.9c21,0,33,11.2,33,30.9c0,19.7-12,31-33.1,31h-27.8V32.3z M336.6,169c15.2,0,29.3-7.7,35.7-19.9h0.5v18.7h22.4V90.2c0-22.5-18-37-45.7-37c-25.7,0-44.7,14.7-45.4,34.9h21.8c1.8-9.6,10.7-15.9,22.9-15.9c14.8,0,23.1,6.9,23.1,19.6v8.6l-30.2,1.8c-28.1,1.7-43.3,13.2-43.3,33.2C298.4,155.6,314.1,169,336.6,169z M343.1,150.5c-12.9,0-21.1-6.2-21.1-15.7c0-9.8,7.9-15.5,23-16.4l26.9-1.7v8.8C371.9,140.1,359.5,150.5,343.1,150.5z M425.1,210.2c23.6,0,34.7-9,44.4-36.3L512,54.7h-24.6l-28.5,92.1h-0.5l-28.5-92.1h-25.3l41,113.5l-2.2,6.9c-3.7,11.7-9.7,16.2-20.4,16.2c-1.9,0-5.6-0.2-7.1-0.4v18.7C417.3,210,423.3,210.2,425.1,210.2z"/></svg>`;
+
+const VIPPS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 163.5 66.1"><path fill="#FF5B24" d="M28,22l5.1,14.9l5-14.9H44l-8.8,22.1h-4.4L22,22H28z"/><path fill="#FF5B24" d="M57.3,40.6c3.7,0,5.8-1.8,7.8-4.4c1.1-1.4,2.5-1.7,3.5-0.9s1.1,2.3,0,3.7c-2.9,3.8-6.6,6.1-11.3,6.1c-5.1,0-9.6-2.8-12.7-7.7c-0.9-1.3-0.7-2.7,0.3-3.4s2.5-0.4,3.4,1C50.5,38.3,53.5,40.6,57.3,40.6z M64.2,28.3c0,1.8-1.4,3-3,3s-3-1.2-3-3s1.4-3,3-3C62.8,25.3,64.2,26.6,64.2,28.3z"/><path fill="#FF5B24" d="M78.3,22v3c1.5-2.1,3.8-3.6,7.2-3.6c4.3,0,9.3,3.6,9.3,11.3c0,8.1-4.8,12-9.8,12c-2.6,0-5-1-6.8-3.5v10.6h-5.4V22H78.3z M78.3,33c0,4.5,2.6,6.9,5.5,6.9c2.8,0,5.6-2.2,5.6-6.9c0-4.6-2.8-6.8-5.6-6.8C81,26.2,78.3,28.3,78.3,33z"/><path fill="#FF5B24" d="M104.3,22v3c1.5-2.1,3.8-3.6,7.2-3.6c4.3,0,9.3,3.6,9.3,11.3c0,8.1-4.8,12-9.8,12c-2.6,0-5-1-6.8-3.5v10.6h-5.4V22H104.3z M104.3,33c0,4.5,2.6,6.9,5.5,6.9c2.8,0,5.6-2.2,5.6-6.9c0-4.6-2.8-6.8-5.6-6.8C106.9,26.2,104.3,28.3,104.3,33z"/><path fill="#FF5B24" d="M132.3,21.4c4.5,0,7.7,2.1,9.1,7.3l-4.9,0.8c-0.1-2.6-1.7-3.5-4.1-3.5c-1.8,0-3.2,0.8-3.2,2.1c0,1,0.7,2,2.8,2.4l3.7,0.7c3.6,0.7,5.6,3.1,5.6,6.3c0,4.8-4.3,7.2-8.4,7.2c-4.3,0-9.1-2.2-9.8-7.6l4.9-0.8c0.3,2.8,2,3.8,4.8,3.8c2.1,0,3.5-0.8,3.5-2.1c0-1.2-0.7-2.1-3-2.5l-3.4-0.6c-3.6-0.7-5.8-3.2-5.8-6.4C124.2,23.5,128.7,21.4,132.3,21.4z"/></svg>`;
 
 const PLANS = [
   {
@@ -47,41 +51,29 @@ const PAYMENT_METHODS = [
     bgSelected: '#111111',
     textColor: '#ffffff',
     borderColor: 'rgba(255,255,255,0.12)',
-    borderColorSelected: 'rgba(255,255,255,0.45)',
+    borderColorSelected: 'rgba(255,255,255,0.5)',
   },
   {
     id: 'vipps',
     label: 'Vipps',
     sublabel: 'Betal raskt og enkelt med Vipps',
-    bg: '#FF5B24',
-    bgSelected: '#e84e1a',
-    textColor: '#ffffff',
-    borderColor: 'transparent',
-    borderColorSelected: '#ffffff',
+    bg: '#ffffff',
+    bgSelected: '#f8f8f8',
+    textColor: '#FF5B24',
+    borderColor: 'rgba(255,91,36,0.2)',
+    borderColorSelected: '#FF5B24',
   },
   {
     id: 'card',
-    label: 'Kortbetaling',
+    label: 'Kort',
     sublabel: 'Visa, Mastercard og andre kort',
     bg: '#0d1b3e',
     bgSelected: '#0d1b3e',
     textColor: '#D4AF37',
-    borderColor: '#D4AF37',
-    borderColorSelected: '#f0cc55',
+    borderColor: '#1a2a52',
+    borderColorSelected: '#D4AF37',
   },
 ];
-
-function ApplePayIcon({ size = 22 }) {
-  return <Text style={{ fontSize: size, lineHeight: size + 4 }}>🍎</Text>;
-}
-
-function VippsIcon() {
-  return (
-    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 18, fontWeight: '900', color: '#FF5B24', lineHeight: 22 }}>V</Text>
-    </View>
-  );
-}
 
 export default function BetalingScreen() {
   const router = useRouter();
@@ -184,14 +176,14 @@ export default function BetalingScreen() {
         {/* Payment method */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Betalingsmetode</Text>
-          <View style={styles.methodList}>
+          <View style={styles.methodRow}>
             {PAYMENT_METHODS.map((m) => {
               const selected = paymentMethod === m.id;
               return (
                 <TouchableOpacity
                   key={m.id}
                   style={[
-                    styles.methodTile,
+                    styles.methodCard,
                     {
                       backgroundColor: selected ? m.bgSelected : m.bg,
                       borderColor: selected ? m.borderColorSelected : m.borderColor,
@@ -200,40 +192,18 @@ export default function BetalingScreen() {
                   onPress={() => setPaymentMethod(m.id)}
                   activeOpacity={0.82}
                 >
-                  {/* Left: icon + text */}
-                  <View style={styles.methodTileLeft}>
+                  <View style={styles.methodCardIcon}>
                     {m.id === 'apple' && (
-                      <View style={styles.methodIconWrap}>
-                        <ApplePayIcon size={24} color="#fff" />
-                      </View>
+                      <SvgXml xml={APPLE_PAY_SVG} width={68} height={28} />
                     )}
                     {m.id === 'vipps' && (
-                      <View style={styles.methodIconWrap}>
-                        <VippsIcon />
-                      </View>
+                      <SvgXml xml={VIPPS_SVG} width={58} height={24} />
                     )}
                     {m.id === 'card' && (
-                      <View style={[styles.methodIconWrap, { backgroundColor: 'rgba(212,175,55,0.15)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' }]}>
-                        <MaterialIcons name="credit-card" size={22} color="#D4AF37" />
-                      </View>
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.methodTileLabel, { color: m.textColor }]}>{m.label}</Text>
-                      <Text style={[styles.methodTileSub, { color: m.id === 'card' ? 'rgba(212,175,55,0.7)' : 'rgba(255,255,255,0.6)' }]}>
-                        {m.sublabel}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Right: checkmark or circle */}
-                  <View style={[
-                    styles.methodCheck,
-                    selected && { backgroundColor: m.id === 'card' ? '#D4AF37' : '#fff', borderColor: 'transparent' },
-                  ]}>
-                    {selected && (
-                      <Text style={{ color: m.id === 'card' ? '#0d1b3e' : m.bg, fontSize: 12, fontWeight: '900' }}>✓</Text>
+                      <Text style={{ fontSize: 26 }}>💳</Text>
                     )}
                   </View>
+                  <Text style={[styles.methodCardLabel, { color: m.textColor }]}>{m.label}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -293,7 +263,7 @@ export default function BetalingScreen() {
               styles.walletInfo,
               paymentMethod === 'apple'
                 ? { backgroundColor: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.1)' }
-                : { backgroundColor: 'rgba(255,91,36,0.12)', borderColor: 'rgba(255,91,36,0.3)' },
+                : { backgroundColor: 'rgba(255,91,36,0.08)', borderColor: 'rgba(255,91,36,0.25)' },
             ]}>
               <Text style={styles.walletIcon}>
                 {paymentMethod === 'apple' ? '' : '🟠'}
@@ -393,34 +363,24 @@ const styles = StyleSheet.create({
   planRadioSelected: { borderColor: '#6C63FF' },
   planRadioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#6C63FF' },
 
-  methodList: { gap: 10 },
-  methodTile: {
-    flexDirection: 'row',
+  methodRow: { flexDirection: 'row', gap: 10 },
+  methodCard: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 20,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
+    justifyContent: 'center',
+    minHeight: 100,
     borderWidth: 1.5,
   },
-  methodTileLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
-  methodIconWrap: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
+  methodCardIcon: {
+    marginBottom: 10,
     alignItems: 'center',
-  },
-  methodTileLabel: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2, marginBottom: 2 },
-  methodTileSub: { fontSize: 11, fontWeight: '500' },
-  methodCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
-    alignItems: 'center',
+    height: 36,
   },
+  methodCardLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
 
   label: { fontSize: 13, fontWeight: '600', color: '#8b9ab5', marginBottom: 6, marginLeft: 2 },
   input: {

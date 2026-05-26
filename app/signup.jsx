@@ -77,7 +77,6 @@ export default function SignupScreen() {
   async function onAppleRegister() {
     try {
       await appleSignIn();
-      // AuthGate håndterer navigering (ny bruker → /betaling)
     } catch (e) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
         Alert.alert('Apple-registrering feilet', e.message);
@@ -87,20 +86,19 @@ export default function SignupScreen() {
 
   return (
     <View style={styles.safe}>
-      <StatusBar style="light" backgroundColor="#0f0f1a" translucent={false} />
+      <StatusBar style="light" backgroundColor="#0d1b3e" translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.container}>
 
-            <View style={styles.logoWrap}>
+            {/* Logo + header */}
+            <View style={styles.header}>
               <View style={styles.logoIcon}>
                 <Text style={styles.logoEmoji}>👮</Text>
               </View>
               <Text style={styles.logoText}>VekterEksamen</Text>
+              <Text style={styles.subtitle}>Lag en konto for å komme i gang</Text>
             </View>
-
-            <Text style={styles.heading}>Opprett konto</Text>
-            <Text style={styles.subtitle}>Lag en konto for å lagre fremgangen din</Text>
 
             {/* Form */}
             <View style={styles.form}>
@@ -161,9 +159,24 @@ export default function SignupScreen() {
               />
 
               <Animated.View style={{ transform: [{ scale: ctaScale }] }}>
-                <TouchableOpacity style={styles.cta} onPress={onRegister} disabled={busy} activeOpacity={1} onPressIn={onCtaPressIn} onPressOut={onCtaPressOut}>
-                  <LinearGradient colors={['#6C63FF', '#4ECDC4']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGrad}>
-                    {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>Registrer deg</Text>}
+                <TouchableOpacity
+                  style={styles.cta}
+                  onPress={onRegister}
+                  disabled={busy}
+                  activeOpacity={1}
+                  onPressIn={onCtaPressIn}
+                  onPressOut={onCtaPressOut}
+                >
+                  <LinearGradient
+                    colors={['#6C63FF', '#4ECDC4']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.ctaGrad}
+                  >
+                    {busy
+                      ? <ActivityIndicator color="#fff" />
+                      : <Text style={styles.ctaText}>Registrer deg</Text>
+                    }
                   </LinearGradient>
                 </TouchableOpacity>
               </Animated.View>
@@ -176,7 +189,6 @@ export default function SignupScreen() {
               <View style={styles.dividerLine} />
             </View>
 
-            {/* Sosiale knapper — under primærknapp */}
             <SocialButtons
               onGoogle={onGoogleRegister}
               onApple={onAppleRegister}
@@ -199,35 +211,58 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0f0f1a' },
+  safe: { flex: 1, backgroundColor: '#0d1b3e' },
   scroll: { flexGrow: 1 },
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 40, paddingBottom: 32 },
-
-  logoWrap: { alignItems: 'center', marginBottom: 20 },
-  logoIcon: {
-    width: 64, height: 64, borderRadius: 16,
-    backgroundColor: 'rgba(108,99,255,0.15)',
-    borderWidth: 1, borderColor: 'rgba(108,99,255,0.3)',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 10,
+  container: {
+    flex: 1,
+    paddingHorizontal: 28,
+    paddingTop: 48,
+    paddingBottom: 36,
   },
-  logoEmoji: { fontSize: 32 },
-  logoText: { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
 
-  heading: { fontSize: 22, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 6 },
-  subtitle: { fontSize: 14, color: '#8b9ab5', textAlign: 'center', marginBottom: 20 },
+  header: { alignItems: 'center', marginBottom: 28 },
+  logoIcon: {
+    width: 88,
+    height: 88,
+    borderRadius: 24,
+    backgroundColor: 'rgba(108,99,255,0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(108,99,255,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logoEmoji: { fontSize: 42 },
+  logoText: {
+    fontSize: 30,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#8b9ab5',
+    textAlign: 'center',
+  },
 
-  form: { marginBottom: 16 },
+  form: { marginBottom: 20 },
   nameRow: { flexDirection: 'row', gap: 10 },
   nameField: { flex: 1 },
-  label: { fontSize: 13, fontWeight: '600', color: '#8b9ab5', marginBottom: 6, marginLeft: 2 },
+  label: { fontSize: 13, fontWeight: '600', color: '#8b9ab5', marginBottom: 8, marginLeft: 2 },
   input: {
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 15, color: '#fff', marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    fontSize: 15,
+    color: '#fff',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   cta: { borderRadius: 14, overflow: 'hidden', marginTop: 4 },
-  ctaGrad: { paddingVertical: 16, alignItems: 'center' },
+  ctaGrad: { paddingVertical: 17, alignItems: 'center' },
   ctaText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
   dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
