@@ -1,10 +1,26 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useCallback } from 'react';
 
 function TabIcon({ name, color, size }) {
   return <MaterialIcons name={name} size={size} color={color} />;
+}
+
+// Eksporter hook slik at tab-skjermer kan bruke den for fade-inn ved fokus
+export function useFadeIn(duration = 200) {
+  const opacity = useSharedValue(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      opacity.value = 0;
+      opacity.value = withTiming(1, { duration });
+    }, [])
+  );
+
+  return useAnimatedStyle(() => ({ opacity: opacity.value }));
 }
 
 export default function TabsLayout() {
@@ -23,6 +39,7 @@ export default function TabsLayout() {
       lazy={false}
       screenOptions={{
         headerShown: false,
+        animation: 'fade',
         tabBarActiveTintColor: '#6C63FF',
         tabBarInactiveTintColor: '#5a6378',
         tabBarStyle: {

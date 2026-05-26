@@ -6,8 +6,8 @@ import {
   ScrollView,
   Modal,
   Dimensions,
-  Animated,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -180,7 +180,13 @@ export default function QuizScreen() {
   const [lesMerCat, setLesMerCat] = useState(null);
   const [done, setDone] = useState(false);
   const [removedIds, setRemovedIds] = useState(new Set()); // qId-er fjernet fra feilbank denne økten
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const cardOpacity = useSharedValue(1);
+  const cardTranslateX = useSharedValue(0);
+  const cardAnimStyle = useAnimatedStyle(() => ({
+    opacity: cardOpacity.value,
+    transform: [{ translateX: cardTranslateX.value }],
+  }));
 
   const erFeilbankØving = !isExam && !!feilbankIds;
   const erDaglig = isDaily && !!dailyIds;
@@ -240,11 +246,12 @@ export default function QuizScreen() {
   }
 
   function animateTransition(cb) {
-    Animated.sequence([
-      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
-      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
+    // Reset til høyre og usynlig, så spring inn fra venstre
+    cardTranslateX.value = 50;
+    cardOpacity.value = 0;
     cb();
+    cardTranslateX.value = withSpring(0, { damping: 20, stiffness: 200 });
+    cardOpacity.value = withTiming(1, { duration: 200 });
   }
 
   function loggSvarStat(q, riktig) {
@@ -458,13 +465,11 @@ export default function QuizScreen() {
 
       {/* Progress bar */}
       <View style={styles.progressBarBg}>
-        <Animated.View
-          style={[styles.progressBarFill, { width: `${progress_pct}%` }]}
-        />
+        <View style={[styles.progressBarFill, { width: `${progress_pct}%` }]} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Animated.View style={{ opacity: fadeAnim }}>
+        <Animated.View style={cardAnimStyle}>
           {/* Question */}
           <View style={styles.questionCard}>
             <View style={styles.questionMeta}>

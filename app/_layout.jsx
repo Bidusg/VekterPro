@@ -198,14 +198,15 @@ function AuthGate() {
 export default function RootLayout() {
   return (
     <ErrorBoundary>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0f0f1a' }}>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0d1b3e' }}>
         <StoreProvider>
-          <StatusBar style="light" />
+          <StatusBar style="light" backgroundColor="#0d1b3e" />
           <Stack
             screenOptions={{
               headerShown: false,
               contentStyle: { backgroundColor: '#0f0f1a' },
               animation: 'fade',
+              animationDuration: 250,
             }}
           >
             <Stack.Screen name="index" options={{ contentStyle: { backgroundColor: '#0d1b3e' } }} />

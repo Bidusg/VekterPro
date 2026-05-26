@@ -71,14 +71,14 @@ const PAYMENT_METHODS = [
   },
 ];
 
-function ApplePayIcon({ size = 22, color = '#fff' }) {
-  return <Text style={{ fontSize: size, color, lineHeight: size + 4 }}></Text>;
+function ApplePayIcon({ size = 22 }) {
+  return <Text style={{ fontSize: size, lineHeight: size + 4 }}>🍎</Text>;
 }
 
-function VippsIcon({ size = 22 }) {
+function VippsIcon() {
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: size * 0.55, lineHeight: size * 0.7 }}>🟠</Text>
+    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ fontSize: 18, fontWeight: '900', color: '#FF5B24', lineHeight: 22 }}>V</Text>
     </View>
   );
 }
@@ -208,8 +208,8 @@ export default function BetalingScreen() {
                       </View>
                     )}
                     {m.id === 'vipps' && (
-                      <View style={[styles.methodIconWrap, { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 10 }]}>
-                        <Text style={{ fontSize: 20, lineHeight: 24 }}>🟠</Text>
+                      <View style={styles.methodIconWrap}>
+                        <VippsIcon />
                       </View>
                     )}
                     {m.id === 'card' && (
