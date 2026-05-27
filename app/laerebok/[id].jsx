@@ -88,6 +88,7 @@ export default function KapittelScreen() {
   const [erLest, setErLest] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [tocOpen, setTocOpen] = useState(false);
+  const [sectionYPositions, setSectionYPositions] = useState([]);
   const scrollRef = useRef(null);
   const markedRef = useRef(false);
 
@@ -100,6 +101,7 @@ export default function KapittelScreen() {
   useEffect(() => {
     setScrollProgress(0);
     setTocOpen(false);
+    setSectionYPositions([]);
     markedRef.current = false;
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [id]);
@@ -202,10 +204,24 @@ export default function KapittelScreen() {
       {tocOpen && (
         <View style={s.tocList}>
           {kapittel.seksjoner?.map((sek, i) => (
-            <Text key={i} style={s.tocItem}>
-              <Text style={s.tocNum}>{i + 1}. </Text>
-              {sek.tittel}
-            </Text>
+            <TouchableOpacity
+              key={i}
+              style={s.tocItemRow}
+              activeOpacity={0.6}
+              onPress={() => {
+                setTocOpen(false);
+                const yPos = sectionYPositions[i];
+                if (yPos !== undefined) {
+                  scrollRef.current?.scrollTo({ y: yPos, animated: true });
+                }
+              }}
+            >
+              <Text style={s.tocItem}>
+                <Text style={s.tocNum}>{i + 1}. </Text>
+                {sek.tittel}
+              </Text>
+              <MaterialIcons name="chevron-right" size={14} color="#5a6378" />
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -232,7 +248,18 @@ export default function KapittelScreen() {
 
         {/* Seksjoner (h2) */}
         {kapittel.seksjoner?.map((seksjon, si) => (
-          <View key={si} style={s.h2Block}>
+          <View
+            key={si}
+            style={s.h2Block}
+            onLayout={(event) => {
+              const { y } = event.nativeEvent.layout;
+              setSectionYPositions(prev => {
+                const updated = [...prev];
+                updated[si] = y;
+                return updated;
+              });
+            }}
+          >
             <Text style={s.h2}>{seksjon.tittel}</Text>
             <View style={s.h2Line} />
             {seksjon.innhold?.map((block, bi) => (
@@ -327,7 +354,11 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)',
     paddingHorizontal: 20, paddingVertical: 10,
   },
-  tocItem: { color: '#8b9ab5', fontSize: 13, lineHeight: 26 },
+  tocItemRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', paddingVertical: 2,
+  },
+  tocItem: { color: '#8b9ab5', fontSize: 13, lineHeight: 26, flex: 1 },
   tocNum: { color: GOLD, fontWeight: '700' },
 
   scroll: { padding: 20, paddingBottom: 60 },

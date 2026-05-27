@@ -175,8 +175,6 @@ export default function QuizScreen() {
   const [questions, setQuestions] = useState([]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [showFeedback, setShowFeedback] = useState(null); // null | 'correct' | 'wrong'
-  const [currentForklaring, setCurrentForklaring] = useState(null);
   const [lesMerCat, setLesMerCat] = useState(null);
   const [done, setDone] = useState(false);
   const [removedIds, setRemovedIds] = useState(new Set()); // qId-er fjernet fra feilbank denne økten
@@ -190,12 +188,10 @@ export default function QuizScreen() {
 
   const erFeilbankØving = !isExam && !!feilbankIds;
   const erDaglig = isDaily && !!dailyIds;
-  const timeoutRef = useRef(null);
 
   useEffect(() => {
     buildQuestions();
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       clearAllCaches();
     };
   }, []);
@@ -266,73 +262,31 @@ export default function QuizScreen() {
     const q = questions[current];
     const erFørsteSvar = answers[current] === undefined;
 
-    if (isExam) {
-      // Eksamen: registrer svar. Auto-advance kun ved første svar – hvis brukeren
-      // går tilbake og endrer, oppdateres svaret uten å hoppe videre.
-      setAnswers((prev) => ({ ...prev, [current]: optIdx }));
-      markQuestionSeen(q.id);
+    setAnswers((prev) => ({ ...prev, [current]: optIdx }));
+    markQuestionSeen(q.id);
 
-      // Skriv til feilbank kun ved første svar (unngå støy ved retting)
-      if (erFørsteSvar) {
-        const riktig = optIdx === q.ans;
-        if (riktig) {
-          registrerRiktigSvar(userId, q);
-        } else {
-          console.log('[quiz] feil svar → feilbank:', userId, q.id, q.q?.slice(0, 50));
-          registrerFeilSvar(userId, q);
-        }
-        loggSvarStat(q, riktig);
-      }
+    if (erFørsteSvar) {
+      const riktig = optIdx === q.ans;
 
-      if (erFørsteSvar) {
-        timeoutRef.current = setTimeout(() => {
-          if (current + 1 >= questions.length) {
-            setDone(true);
-          } else {
-            animateTransition(() => setCurrent((p) => p + 1));
+      if (!isExam && aktivModul) updateProgress(aktivModul.id, riktig);
+      loggSvarStat(q, riktig);
+
+      if (riktig) {
+        registrerRiktigSvar(userId, q).then((res) => {
+          if (res?.fjernet && erFeilbankØving) {
+            setRemovedIds((prev) => {
+              const next = new Set(prev);
+              next.add(q.id);
+              return next;
+            });
           }
-        }, 600);
-      }
-    } else {
-      // Øving: vis tilbakemelding og forklaring
-      const correct = optIdx === q.ans;
-      setAnswers((prev) => ({ ...prev, [current]: optIdx }));
-      setShowFeedback(correct ? 'correct' : 'wrong');
-
-      // Spor fremgang per modul (kun ved første svar for å unngå dobbeltelling)
-      if (erFørsteSvar && aktivModul) {
-        updateProgress(aktivModul.id, correct);
+        });
+      } else {
+        console.log('[quiz] feil svar → feilbank:', userId, q.id, q.q?.slice(0, 50));
+        registrerFeilSvar(userId, q);
       }
 
-      // Skriv til feilbank
-      if (erFørsteSvar) {
-        loggSvarStat(q, correct);
-        if (correct) {
-          registrerRiktigSvar(userId, q).then((res) => {
-            if (res?.fjernet && erFeilbankØving) {
-              setRemovedIds((prev) => {
-                const next = new Set(prev);
-                next.add(q.id);
-                return next;
-              });
-            }
-          });
-        } else {
-          console.log('[quiz] feil svar → feilbank:', userId, q.id, q.q?.slice(0, 50));
-          registrerFeilSvar(userId, q);
-        }
-      }
-
-      const forklaring = hentForklaring(q.id, optIdx, q.ans);
-      setCurrentForklaring(forklaring);
-
-      if (correct) {
-        // Auto-advance kun ved riktig svar
-        timeoutRef.current = setTimeout(() => {
-          goToNext();
-        }, 1400);
-      }
-      // Feil svar: ingen auto-advance – brukeren må lese og trykke Neste
+      goNext();
     }
   }
 
@@ -348,9 +302,6 @@ export default function QuizScreen() {
   }
 
   function goToNext() {
-    setShowFeedback(null);
-    setCurrentForklaring(null);
-
     if (isExam) {
       if (current + 1 >= questions.length) setDone(true);
       else animateTransition(() => setCurrent((p) => p + 1));
@@ -390,8 +341,6 @@ export default function QuizScreen() {
 
   function goPrev() {
     if (current > 0) {
-      setShowFeedback(null);
-      setCurrentForklaring(null);
       animateTransition(() => setCurrent((p) => p - 1));
     }
   }
@@ -488,38 +437,41 @@ export default function QuizScreen() {
             {q.opts.map((opt, idx) => {
               let optStyle = styles.option;
               let optTextStyle = styles.optionText;
+              let icon = null;
 
-              if (!isExam && showFeedback && selectedAnswer !== undefined) {
-                if (idx === q.ans) {
-                  optStyle = [styles.option, styles.optionCorrect];
-                  optTextStyle = [styles.optionText, styles.optionTextCorrect];
-                } else if (idx === selectedAnswer) {
-                  optStyle = [styles.option, styles.optionWrong];
-                  optTextStyle = [styles.optionText, styles.optionTextWrong];
+              if (selectedAnswer !== undefined) {
+                if (isExam) {
+                  if (idx === selectedAnswer) {
+                    optStyle = [styles.option, styles.optionSelected];
+                    optTextStyle = [styles.optionText, styles.optionTextSelected];
+                  }
+                } else {
+                  if (idx === q.ans) {
+                    optStyle = [styles.option, styles.optionCorrect];
+                    optTextStyle = [styles.optionText, styles.optionTextCorrect];
+                    icon = '✓';
+                  } else if (idx === selectedAnswer) {
+                    optStyle = [styles.option, styles.optionWrong];
+                    optTextStyle = [styles.optionText, styles.optionTextWrong];
+                    icon = '✗';
+                  }
                 }
-              } else if (isExam && selectedAnswer === idx) {
-                optStyle = [styles.option, styles.optionSelected];
-                optTextStyle = [styles.optionText, styles.optionTextSelected];
-              } else if (!isExam && selectedAnswer === idx && !showFeedback) {
-                optStyle = [styles.option, styles.optionSelected];
-                optTextStyle = [styles.optionText, styles.optionTextSelected];
               }
-
-              // I eksamen kan brukeren alltid endre svar (også når de går tilbake).
-              // I øvingsmodus låses valgene mens feedback vises.
-              const disabled = !isExam && showFeedback !== null;
 
               return (
                 <TouchableOpacity
                   key={idx}
                   style={optStyle}
                   onPress={() => handleAnswer(idx)}
-                  disabled={disabled}
                   activeOpacity={0.75}
                 >
                   <View style={styles.optionLetter}>
-                    <Text style={styles.optionLetterText}>
-                      {['A', 'B', 'C', 'D'][idx]}
+                    <Text style={[
+                      styles.optionLetterText,
+                      icon === '✓' && styles.optionLetterTextCorrect,
+                      icon === '✗' && styles.optionLetterTextWrong,
+                    ]}>
+                      {icon ?? ['A', 'B', 'C', 'D'][idx]}
                     </Text>
                   </View>
                   <Text style={optTextStyle}>{opt}</Text>
@@ -527,41 +479,6 @@ export default function QuizScreen() {
               );
             })}
           </View>
-
-          {/* Feedback + forklaring (kun øvingsmodus) */}
-          {!isExam && showFeedback && (
-            <View style={styles.feedbackContainer}>
-              {/* Riktig/feil-banner */}
-              <View style={[styles.feedbackBar, showFeedback === 'correct' ? styles.feedbackCorrect : styles.feedbackWrong]}>
-                <Text style={styles.feedbackText}>
-                  {showFeedback === 'correct'
-                    ? '✅ Riktig!'
-                    : `❌ Feil. Riktig svar: ${q.opts[q.ans]}`}
-                </Text>
-              </View>
-
-              {/* Forklaring ved feil svar */}
-              {showFeedback === 'wrong' && currentForklaring?.feilForklaring && (
-                <View style={styles.forklaringBoks}>
-                  <Text style={styles.forklaringLabel}>Hvorfor?</Text>
-                  <Text style={styles.forklaringTekst}>{currentForklaring.feilForklaring}</Text>
-                </View>
-              )}
-
-              {/* Kilde */}
-              {currentForklaring?.kilde && (
-                <Text style={styles.kildeText}>📖 Kilde: {currentForklaring.kilde}</Text>
-              )}
-
-              {/* Les mer-knapp */}
-              <TouchableOpacity
-                style={styles.lesMerBtn}
-                onPress={() => setLesMerCat(q.cat)}
-              >
-                <Text style={styles.lesMerBtnText}>Les mer i læreboken →</Text>
-              </TouchableOpacity>
-            </View>
-          )}
         </Animated.View>
       </ScrollView>
 
@@ -575,13 +492,11 @@ export default function QuizScreen() {
           <Text style={styles.navBtnText}>← Forrige</Text>
         </TouchableOpacity>
 
-        {(!isExam || showFeedback || selectedAnswer !== undefined) && (
-          <TouchableOpacity style={styles.navBtnPrimary} onPress={goNext}>
-            <Text style={styles.navBtnPrimaryText}>
-              {current + 1 >= questions.length ? 'Fullfør' : 'Neste →'}
-            </Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity style={styles.navBtnPrimary} onPress={goNext}>
+          <Text style={styles.navBtnPrimaryText}>
+            {current + 1 >= questions.length ? 'Fullfør' : 'Neste →'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Les mer modal */}
@@ -659,6 +574,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   optionLetterText: { fontSize: 13, fontWeight: '800', color: '#8b9ab5' },
+  optionLetterTextCorrect: { color: '#2ECC71' },
+  optionLetterTextWrong: { color: '#E74C3C' },
 
   optionText: { flex: 1, fontSize: 15, color: '#c8d0e0', lineHeight: 21 },
   optionTextSelected: { color: '#fff' },
