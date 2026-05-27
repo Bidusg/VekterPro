@@ -4,7 +4,11 @@
       "Bash(git commit -m ' *)",
       "Bash(python -c \"import json; d=json.load\\(open\\('package.json'\\)\\); print\\('expo:', d['dependencies']['expo']\\); print\\('rn:', d['dependencies']['react-native']\\)\")",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(eas update:list --branch production --limit 5)",
+      "Bash(eas update:list --branch development --limit 3)",
+      "Bash(eas update *)",
+      "Bash(eas build *)"
     ]
   }
 }

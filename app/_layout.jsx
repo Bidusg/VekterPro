@@ -200,16 +200,19 @@ export default function RootLayout() {
   useEffect(() => {
     async function checkUpdate() {
       try {
+        console.log('[OTA] Sjekker oppdatering...');
         const update = await Updates.checkForUpdateAsync();
+        console.log('[OTA] Tilgjengelig:', update.isAvailable);
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync();
+          console.log('[OTA] Hentet, restarter...');
           await Updates.reloadAsync();
         }
       } catch (e) {
-        console.log('Update check failed:', e);
+        console.log('[OTA] Feil:', e);
       }
     }
-    if (!__DEV__) checkUpdate();
+    checkUpdate();
   }, []);
 
   return (

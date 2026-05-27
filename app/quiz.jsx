@@ -349,8 +349,6 @@ export default function QuizScreen() {
     setAnswers({});
     setCurrent(0);
     setDone(false);
-    setShowFeedback(null);
-    setCurrentForklaring(null);
     buildQuestions();
   }
 
@@ -398,12 +396,12 @@ export default function QuizScreen() {
         <View style={styles.headerCenter}>
           <Text style={styles.modeLabel} numberOfLines={1}>
             {isExam
-              ? '🎓 Eksamen'
+              ? '🎓 Eksamen v2'
               : chapterNum
-                ? `📖 Kapittel ${chapterNum}`
+                ? `📖 Kapittel ${chapterNum} v2`
                 : aktivModul
-                  ? `${aktivModul.icon} Modul ${aktivModul.num}`
-                  : '📚 Øving'}
+                  ? `${aktivModul.icon} Modul ${aktivModul.num} v2`
+                  : '📚 Øving v2'}
           </Text>
           <Text style={styles.progress}>
             {current + 1} / {questions.length}
